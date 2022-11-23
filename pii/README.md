@@ -25,5 +25,4 @@ Make sure you have the `gibberish_data` folder in the same directory as the scri
 
 ## Notebooks
 * `example.ipynb` is an example notebook to show how to use the pipeline.
-* `quantitative_evaluation_regexes.ipynb` contains some evaluation the PII detection.
 * there are several notebooks in `notebooks` folder with some of our experiments.
