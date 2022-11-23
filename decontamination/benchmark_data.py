@@ -64,6 +64,25 @@ def apps_solutions():
     res = itertools.chain.from_iterable(json.loads(sample) for sample in solutions)
     return list(res)
 
+def multipl_e_docstrings():
+    # languages = [ 
+    #     "cpp", "cs", "d", "go", "java", "jl", "js", "lua", "php", "pl", "py", "r", 
+    #     "rb", "rkt", "rs", "scala", "sh", "swift", "ts"
+    # ]
+    languages = ["py", "java", "js"]
+    src_datas = ["humaneval", "mbpp"]
+    variations = ["", "-remove"]
+    data = []
+    for lang in languages:
+        for src_data in src_datas:
+            for variation in variations:
+                if src_data == "mbpp" and variation == "-remove":
+                    continue
+                ds = load_dataset("nuprl/MultiPL-E", f"{src_data}-{lang}{variation}", split="test")
+                data += [sample["prompt"].strip() for sample in ds]
+    return data
+
+
 
 def load_dataset_column(dataset: str, column: str, split: str):
     ds = load_dataset(dataset, split=split)
@@ -80,9 +99,8 @@ FILTER_OUT = {
     "apps_docstrings": load_dataset_column("codeparrot/apps", "question", "test"),
     # 115212 examples to filter-out in apps-solutions, which would take way too much time without any hashing trick
     # "apps_solutions": apps_solutions(),
-    "multipl-e_docstrings": load_dataset_column("nuprl/MultiPL-E", "prompt", "test"),
+    "multipl-e_docstrings": multipl_e_docstrings(),
     # There is no solution provided with multipl-e
-    # "multipl-e_solutions": load_dataset_column("nuprl/MultiPL-E", "", "test"),
 }
 
 
