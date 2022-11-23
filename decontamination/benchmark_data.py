@@ -9,6 +9,9 @@ from datasets import load_dataset
 MBPP_PATH = "/data/mbpp/mbpp.jsonl"
 TEST_IDS = list(range(11, 511))
 
+HUMAN_EVAL_STRINGS_OK = ['return x + y', 'return len(string)', 'return n**2']
+
+
 def load_mbpp():
     data = []
     with open(MBPP_PATH) as f:
@@ -95,13 +98,19 @@ FILTER_OUT = {
     "mbpp_docstrings": mbpp_docstrings(),
     "mbpp_solutions": mbpp_solutions(),
     "human_eval_docstrings": human_eval_docstrings(),
-    "human_eval_solutions": load_dataset_column("openai_humaneval", "canonical_solution", "test"),
+    "human_eval_solutions": [
+        s for s in load_dataset_column("openai_humaneval", "canonical_solution", "test")
+        if s not in HUMAN_EVAL_STRINGS_OK
+    ],
     "apps_docstrings": load_dataset_column("codeparrot/apps", "question", "test"),
     # 115212 examples to filter-out in apps-solutions, which would take way too much time without any hashing trick
     # "apps_solutions": apps_solutions(),
     "multipl-e_docstrings": multipl_e_docstrings(),
     # There is no solution provided with multipl-e
 }
+
+for benchmark, values in FILTER_OUT.items():
+    print(f"num strings from {benchmark}: {len(values)}")
 
 
 def filter_file(data, return_matched=False):
