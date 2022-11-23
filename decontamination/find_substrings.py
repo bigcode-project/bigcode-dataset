@@ -135,7 +135,7 @@ def main():
         json.dump(meta, f)
 
     # Save shards
-    shard_dataset(ds, SHARD_SIZE, data_dir, num_proc=args.num_proc)
+    shard_dataset(filtered, SHARD_SIZE, data_dir, num_proc=args.num_proc)
 
 
 if __name__ == "__main__":
