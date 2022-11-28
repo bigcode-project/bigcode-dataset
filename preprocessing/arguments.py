@@ -3,7 +3,7 @@ from typing import Optional
 
 
 @dataclass
-class EvalArguments:
+class FilteringArguments:
     # add arguments in the following format
     dataset_name: Optional[str] = field(
         default="bigcode/python_permissive",
