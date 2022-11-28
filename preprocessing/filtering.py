@@ -12,7 +12,7 @@ from transformers import HfArgumentParser
 from datasets import load_dataset
 from datasets.utils.logging import set_verbosity_info
 
-from arguments import EvalArguments
+from arguments import FilteringArguments
 from utils.manual_sharding import save_manual_shards
 from utils.text_extraction import get_nl_ratio
 
@@ -47,7 +47,7 @@ def pattern_match(patterns, source_list):
 
 
 def parse_args():
-    parser = HfArgumentParser(EvalArguments)
+    parser = HfArgumentParser(FilteringArguments)
     parser.add_argument(
         "--filters",
         default=None,
