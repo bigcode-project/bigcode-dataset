@@ -233,15 +233,15 @@ if __name__ == "__main__":
     )
     logger.info("===== Saving filtered dataset =====")
 
-     t_start = time.time()
-     if args.push_to_hub:
-         logger.info(f"Pushing dataset to the Hub at {args.remote_repo}")
-         dataset.push_to_hub(args.remote_repo)
-     else:
-         print(
-             f"Saving the dataset in manual shards in a clone of {args.hub_username + args.remote_repo}"
-         )
-         save_manual_shards(
-             dataset, user=args.hub_username, remote_dataset_repo=args.remote_repo
-         )
+    t_start = time.time()
+    if args.push_to_hub:
+        logger.info(f"Pushing dataset to the Hub at {args.remote_repo}")
+        dataset.push_to_hub(args.remote_repo)
+    else:
+        print(
+          f"Saving the dataset in manual shards in a clone of {args.hub_username + args.remote_repo}"
+        )
+    save_manual_shards(
+          dataset, user=args.hub_username, remote_dataset_repo=args.remote_repo
+    )
     logger.info(f"Dataset successfully saved in {time.time() - t_start:.2f} seconds")
