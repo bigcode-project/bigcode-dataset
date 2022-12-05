@@ -1,4 +1,4 @@
 datasets==2.6.1
 huggingface_hub==0.10.1
-transformers====4.23.1
+transformers==4.23.1
 pygments==2.11.2
