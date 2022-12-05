@@ -109,27 +109,6 @@ FILTER_OUT = {
     # There is no solution provided with multipl-e
 }
 
+
 for benchmark, values in FILTER_OUT.items():
     print(f"num strings from {benchmark}: {len(values)}")
-
-
-def filter_file(data, return_matched=False):
-    """
-    Return True, None if the file should be included in the dataset.
-    Otherwise return False and some metadata about the file excluded
-    """
-    content = data['content'].lower()
-    # For each substring, try to find it in the file (case insensitive)
-    for benchmark, substrings in FILTER_OUT.items():
-        for substring in substrings:
-            if substring.lower() in content:
-                if return_matched:
-                    return False, f"{benchmark}_match", substring
-                else:
-                    return False, f"{benchmark}_match"
-
-    # Return True, None if none of the substrings was found
-    if return_matched:
-        return True, None, None
-    else:
-        return True, None
