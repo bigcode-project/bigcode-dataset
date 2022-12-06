@@ -170,7 +170,7 @@ class SubstringFilterer(object):
         return should_include, filter_reason, matched_substring
 
 
-    def filter_substrings(self, batch: dict, idx):
+    def _filter(self, batch: dict, idx):
         meta = Meta()
         excluded_data = []
         features = batch.keys()
@@ -199,7 +199,7 @@ class SubstringFilterer(object):
     
     def filter_dataset(self, ds, num_proc):
         filtered = ds.map(
-            self.filter_substrings,
+            self._filter,
             batched=True,
             with_indices=True,
             num_proc=num_proc,
