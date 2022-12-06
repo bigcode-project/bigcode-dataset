@@ -198,10 +198,11 @@ class SubstringFilterer(object):
             json.dump(excluded_data, f, indent=4)
         return res
     
-    def filter_dataset(self, ds, num_proc):
+    def filter_dataset(self, ds, num_proc, batch_size):
         filtered = ds.map(
             self._filter,
             batched=True,
+            batch_size=batch_size,
             with_indices=True,
             num_proc=num_proc,
             load_from_cache_file=False,
@@ -233,8 +234,8 @@ class SubstringFilterer(object):
         else:
             shard_dataset(filtered, SHARD_SIZE, self.data_dir, num_proc=num_proc)
     
-    def run(self, dataset, num_proc):
-        filtered = self.filter_dataset(dataset, num_proc)
+    def run(self, dataset, num_proc, batch_size):
+        filtered = self.filter_dataset(dataset, num_proc, batch_size)
         # Finalize meta-data
         self.finalize()
         # Save filtered dataset.
@@ -260,6 +261,12 @@ def arguments():
         type=int,
         default=200,
         help="Number of processes"
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=10000,
+        help="Size of batches passed to Dataset.map"
     )
     parser.add_argument(
         "--cached-decontamination-dir",
@@ -299,7 +306,7 @@ def main():
         # chunksize=40 << 20
     )
 
-    filterer.run(ds, args.num_proc)
+    filterer.run(ds, args.num_proc, args.batch_size)
 
 
 if __name__ == "__main__":
