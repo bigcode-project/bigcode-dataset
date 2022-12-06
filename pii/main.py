@@ -125,6 +125,12 @@ def parseArgs():
         type=str,
         help="Path to save the dataset on disk in save_mode=local.",
     )
+    parser.add_argument(
+        # TODO: investigate issue to remove this arg
+        "--remove_columns_the_stack",
+        default=True,
+        type=bool,
+        help="The Stack v1.1 has many columns and this can cause an issue during processing of large subsets.",
     # add an option of evaluating the pipeline on the PII benchmark we built
     return parser.parse_args()
 
@@ -167,6 +173,15 @@ def main():
     ds = load_dataset(args.dataset_name, data_dir=args.subset, split=args.split, use_auth_token=True)
     if args.text_column != "content":
         ds = ds.rename_column(args.text_column, "content")
+    if args.remove_columns_the_stack:
+        logger.info("removing extra columns from The Stack")
+        columns = ['ext', 'max_stars_repo_head_hexsha', 'max_stars_repo_licenses', 'max_stars_repo_stars_event_min_datetime',\
+                  'max_stars_repo_stars_event_max_datetime', 'max_issues_repo_path', 'max_issues_repo_name', 'max_issues_repo_head_hexsha',\
+                  'max_issues_repo_licenses', 'max_issues_count', 'max_issues_repo_issues_event_min_datetime', 'max_issues_repo_issues_event_max_datetime', \
+                  'max_forks_repo_path', 'max_forks_repo_name', 'max_forks_repo_head_hexsha', \
+                  'max_forks_repo_licenses', 'max_forks_count', 'max_forks_repo_forks_event_min_datetime', 'max_forks_repo_forks_event_max_datetime']
+        ds = ds.remove_columns(columns) 
+        logger.info(f"New dataset fomat: {ds}")
     # add id column to dataset
     logger.info(f" ===== Adding an index column =====")
     ds = ds.add_column("index", list(range(len(ds))))
