@@ -125,9 +125,10 @@ class Meta:
         self.meta_dict[lang][filter_reason] += 1
 
 class SubstringFilterer(object):
-    def __init__(self, output_dir: str, cached_decontamination_dir: str, split_languages: bool = False) -> None:
+    def __init__(self, output_dir: str, cached_decontamination_dir: str, split_languages: bool, cache_retrieval_key: str) -> None:
         self.output_dir = output_dir
         self.split_languages = split_languages
+        self.cache_retrieval_key = cache_retrieval_key
         self.tmp_meta_dir = f"{output_dir}/tmp/meta"
         self.data_dir = f"{output_dir}/data"
         os.makedirs(self.tmp_meta_dir, exist_ok=True)
@@ -145,10 +146,10 @@ class SubstringFilterer(object):
                 os.path.join(cached_decontamination_dir, "excluded-data.json"),
             )
             # All hashes should be unique
-            hash_list = [data_sample["data"]["hexsha"] for data_sample in self.exclude_data]
+            hash_list = [data_sample["data"][self.cache_retrieval_key] for data_sample in self.exclude_data]
             assert len(hash_list) == len(set(hash_list))
-            # dict: hash -> data-sample
-            self.exclude_data_index = {data_sample["data"]["hexsha"]: data_sample for data_sample in self.exclude_data}
+            # dict: retrieval-key (hash/content) -> data-sample
+            self.exclude_data_index = {data_sample["data"][self.cache_retrieval_key]: data_sample for data_sample in self.exclude_data}
             self.use_cached_decontamination = True
         else:
             self.filter_out = FILTER_OUT
@@ -160,10 +161,10 @@ class SubstringFilterer(object):
         should_include, filter_reason, matched_substring = True, None, None
         if self.use_cached_decontamination:
             # According to cache, this data sample should be excluded
-            if sample["hexsha"] in self.exclude_data_index:
+            if sample[self.cache_retrieval_key] in self.exclude_data_index:
                 should_include = False
-                filter_reason = self.exclude_data_index[sample["hexsha"]]["filter_reason"]
-                matched_substring = self.exclude_data_index[sample["hexsha"]]["matched_substring"]
+                filter_reason = self.exclude_data_index[sample[self.cache_retrieval_key]]["filter_reason"]
+                matched_substring = self.exclude_data_index[sample[self.cache_retrieval_key]]["matched_substring"]
         # If sample has passed the cache, check the other substrings
         if should_include:
             should_include, filter_reason, matched_substring = find_substrings(sample, self.filter_out, return_matched=True)
@@ -270,6 +271,12 @@ def arguments():
         "(Otherwise not all the benchmark samples will be checked against new data samples)"
     )
     parser.add_argument(
+        "--cache-retrieval-key",
+        type=str,
+        default="hexsha",
+        help="Key used to retrieve examples from the cache"
+    )
+    parser.add_argument(
         "--split-languages",
         action="store_true",
         help="If True, will create one subfolder per language for the output dataset."
@@ -280,7 +287,12 @@ def arguments():
 def main():
     args = arguments()
 
-    filterer = SubstringFilterer(output_dir=args.output_dir, cached_decontamination_dir=args.cached_decontamination_dir, split_languages=args.split_languages)
+    filterer = SubstringFilterer(
+        output_dir=args.output_dir,
+        cached_decontamination_dir=args.cached_decontamination_dir,
+        split_languages=args.split_languages,
+        cache_retrieval_key=args.cache_retrieval_key
+    )
 
     ds = load_dataset(
         args.dataset_name, split="train", use_auth_token=True,
