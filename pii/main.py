@@ -131,6 +131,7 @@ def parseArgs():
         default=True,
         type=bool,
         help="The Stack v1.1 has many columns and this can cause an issue during processing of large subsets.",
+    )
     # add an option of evaluating the pipeline on the PII benchmark we built
     return parser.parse_args()
 
