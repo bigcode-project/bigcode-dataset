@@ -222,19 +222,22 @@ class SubstringFilterer(object):
     
     def save(self, filtered, num_proc):
         # Save shards
-        # TODO: split languages
         if self.split_languages:
             for lang in LANGUAGES:
                 print(f"Sharding subset: {lang}")
-                subset = filtered.filter(lambda example: example[LANGUAGE_COL] == lang)
-                shard_dataset(subset, SHARD_SIZE, os.path.join(self.data_dir, lang), num_proc=num_proc)    
+                target_dir = os.path.join(self.data_dir, lang.lower())
+                os.makedirs(target_dir, exist_ok=True)
+                subset = filtered.filter(lambda example: example[LANGUAGE_COL] == lang, num_proc=num_proc)
+                shard_dataset(subset, SHARD_SIZE, target_dir, num_proc=num_proc)    
         else:
             shard_dataset(filtered, SHARD_SIZE, self.data_dir, num_proc=num_proc)
     
     def run(self, dataset, num_proc):
         filtered = self.filter_dataset(dataset, num_proc)
+        # Finalize meta-data
         self.finalize()
-        self.save(filtered)
+        # Save filtered dataset.
+        self.save(filtered, num_proc)
 
 
 def arguments():
