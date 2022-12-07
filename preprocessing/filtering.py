@@ -142,8 +142,9 @@ if __name__ == "__main__":
     )
     logger.info(f"Dataset loaded in {time.time() - t_start:.2f} seconds")
     logger.info(f"Dataset: {dataset}")
-    logger.info("Add text size column")
-    dataset = dataset.map(get_size_text)
+    if "size" not in dataset.column_names:
+        logger.info("Add text size column")
+        dataset = dataset.map(get_size_text)
     logger.info(
         f"Dataset size before any filtering: {len(dataset)} examples, {sum(dataset['size']) / 1e9:.2f} GB"
     )
