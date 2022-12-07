@@ -17,6 +17,10 @@ class FilteringArguments:
         default="train",
         metadata={"help": "Datasset split to process."},
     )
+    tokenizer_name: Optional[str] = field(
+        default="bigcode/digit-bytelevel-bpe-jss-v1.1-49152",
+        metadata={"help": "HF repo name/path of the tokenizer."},
+    )
     line_max: Optional[int] = field(
         default=1000,
         metadata={"help": "Max line length allowed"},
