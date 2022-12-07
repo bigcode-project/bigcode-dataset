@@ -138,7 +138,7 @@ if __name__ == "__main__":
     t_start = time.time()
     logger.info(f" ===== Loading {args.dataset_name} and subset {args.subset}=====")
     dataset = load_dataset(
-        args.dataset_name, split=args.split, data_dir=args.subset, use_auth_token=True
+        args.dataset_name, split=args.split, data_dir=args.subset, use_auth_token=True, num_proc=args.num_workers
     )
     logger.info(f"Dataset loaded in {time.time() - t_start:.2f} seconds")
     logger.info(f"Dataset: {dataset}")
