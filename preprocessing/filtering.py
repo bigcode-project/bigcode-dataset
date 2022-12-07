@@ -1,24 +1,26 @@
 """Filter code datasets using:  
     * basic filters (line length and alphanumeric characters)
     * comments to code ratio (maximum + minimum)
-    * minimum number of stars"""
+    * minimum number of stars
+    * tokenizer fertility ratio (char to token ratio)"""
 
 import fnmatch
-import time
 import logging
-import numpy as np
+import time
+from functools import partial
 
-from transformers import HfArgumentParser
+import numpy as np
 from datasets import load_dataset
 from datasets.utils.logging import set_verbosity_info
+from transformers import AutoTokenizer, HfArgumentParser
 
 from arguments import FilteringArguments
 from utils.manual_sharding import save_manual_shards
 from utils.text_extraction import get_nl_ratio
 
-
 # define list of filters to apply
-ALL_FILTERS = ["basic", "stars", "comments"]
+ALL_FILTERS = ["basic", "stars", "comments", "fertility"]
+THRESHOLDS_FERTILITY = {"python": 2.5, "java": 2.9, "javascript": 2.6}
 
 
 class MultiChoice:
@@ -87,6 +89,26 @@ def basic_filters(example):
     return True
 
 
+def char_token_ratio(examples, tokenizer):
+    ratio_list = []
+    for code in examples["content"]:
+        input_ids = tokenizer(code, truncation=False)["input_ids"]
+        ratio = len(code) / len(input_ids)
+        ratio_list.append(ratio)
+    return {"fertility_ratio": ratio_list}
+
+
+def filter_tokenizer(examples):
+    """Filter files based on char to token ratio"""
+    values = []
+    for ratio, lang in zip(examples["fertility_ratio"], examples["lang"]):
+        if ratio < THRESHOLDS_FERTILITY[lang.lower()]:
+            values.append(False)
+        else:
+            values.append(True)
+    return values
+
+
 def get_size_text(example):
     return {"size": len(example["content"])}
 
@@ -141,6 +163,19 @@ if __name__ == "__main__":
         )
         dataset = dataset.map(
             get_comments_ratio,
+            batched=True,
+            batch_size=args.batch_size,
+            num_proc=args.num_workers,
+        )
+    if "fertility" in filters:
+        logger.info(
+            f"===== Processing dataset to add tokenizer fertility ratio column====="
+        )
+        tokenizer = AutoTokenizer.from_pretrained(
+            args.tokenizer_name, use_auth_token=True
+        )
+        dataset = dataset.map(
+            partial(char_token_ratio, tokenizer=tokenizer),
             batched=True,
             batch_size=args.batch_size,
             num_proc=args.num_workers,
@@ -227,6 +262,38 @@ if __name__ == "__main__":
             )
             dataset = ds
 
+        elif filter == "fertility":
+            logger.info(
+                f"===== Filtering on tokenizer fertility ratio with thresholds {THRESHOLDS_FERTILITY}====="
+            )
+            old_size = len(dataset)
+            old_size_gb = sum(dataset["size"])
+            t_start = time.time()
+            ds = dataset.filter(
+                filter_tokenizer,
+                batched=True,
+                batch_size=args.batch_size,
+                num_proc=args.num_workers,
+            )
+            print(
+                f"Percentiles of fertility ratio in all dataset: 3rd, 5th, 10th, 95th and 99th: {np.percentile(dataset['fertility_ratio'], [3, 5, 10, 95, 99])}"
+            )
+            logger.info(f"Filtering done in {time.time() - t_start:.2f} seconds")
+            logger.info(
+                f"Percentage of removed files: {np.round((old_size - len(ds))*100/old_size, 2)}%"
+            )
+            new_size_gb = sum(ds["size"])
+            logger.info(
+                f"Dataset size before {filter} filtering: {old_size} examples, {old_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"Dataset size after {filter} filtering: {len(ds)} examples, {new_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"Percentage of volume removed {np.round((old_size_gb - new_size_gb)*100/old_size_gb, 2)}%"
+            )
+            dataset = ds
+
     # Save dataset
     logger.info(
         f"Final dataset has {len(dataset)} samples and {sum(dataset['size']) / 1e9:.2f} GB of code"
@@ -239,9 +306,9 @@ if __name__ == "__main__":
         dataset.push_to_hub(args.remote_repo)
     else:
         print(
-          f"Saving the dataset in manual shards in a clone of {args.hub_username + args.remote_repo}"
+            f"Saving the dataset in manual shards in a clone of {args.hub_username + args.remote_repo}"
         )
     save_manual_shards(
-          dataset, user=args.hub_username, remote_dataset_repo=args.remote_repo
+        dataset, user=args.hub_username, remote_dataset_repo=args.remote_repo
     )
     logger.info(f"Dataset successfully saved in {time.time() - t_start:.2f} seconds")
