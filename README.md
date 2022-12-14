@@ -11,3 +11,4 @@ necessary used for model training.
   - line length and percentage of alphanumeric characters.
   - number of stars.
   - comments to code ratio.
+  - tokenizer fertility
