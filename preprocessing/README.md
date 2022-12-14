@@ -7,11 +7,12 @@ Three filters for the preprocessing of The Stack are available:
     * For Python, we extract comments using Python tokenizer and docstrings using `ast` parsing.
     * For other languages (Java and Javascript), we extract comments using `pygments` library.
     * We compute the comment to code ratio of a file by counting the number of characters in comments over the total number of characters in the file.
+* **fertility**: filter based on the character to token ratio after calling the tokenizer on the code file. Different thresholds for Python (2.5), Java (2.9) and JavaScript (2.9) for data after near-dedup + basic filtering & PII redaction.
 
 
 Below is an example for running all filters on the java subset of [The-Stack-Smol](https://huggingface.co/datasets/bigcode/the-stack-smol). You can specify the filters to use separated by commas in `--filters` argument:
 ```bash
-python filtering.py --dataset_name bigcode/the-stack-smol --subset data/java --filters basic,stars,comments --hub_username loubnabnl --remote_repo test_filter_pipeline_java
+python filtering.py --dataset_name bigcode/the-stack-smol --subset data/java --filters basic,comments,stars,fertility --hub_username loubnabnl --remote_repo test_filter_pipeline_java
 ```
 In this case, the dataset is saved in parquet shards in a clone of `remote_repo`. If you want to push the data directly to the hub add `push_to_hub` flag. 
 
