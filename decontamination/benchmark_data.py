@@ -9,7 +9,8 @@ from datasets import load_dataset
 MBPP_PATH = "/data/mbpp/mbpp.jsonl"
 TEST_IDS = list(range(11, 511))
 
-HUMAN_EVAL_STRINGS_OK = ['return x + y', 'return len(string)', 'return n**2']
+# HumanEval solutions that are considered simple/generic enough to be kept in the training dataset
+HUMAN_EVAL_STRINGS_OK = ['return x + y', 'return len(string)', 'return n**2', 'return ''.join(strings)']
 
 
 def load_mbpp():
