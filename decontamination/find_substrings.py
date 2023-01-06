@@ -281,7 +281,7 @@ def arguments():
         "--cache-retrieval-key",
         type=str,
         default="hexsha",
-        help="Key used to retrieve examples from the cache"
+        help="Key used to retrieve examples from the cache. Ideally `hexsha`. Otherwise, another unique feature in case the hash is not present, like `content`)"
     )
     parser.add_argument(
         "--split-languages",

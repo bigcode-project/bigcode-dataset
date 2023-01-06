@@ -13,3 +13,12 @@ pip install -r requirements.txt
 python find_substrings.py --dataset-name bigcode/the-stack-subset-py-js-java-450k --output-dir /path/to/output --num-proc 32
 ```
 
+### Using a cached decontamination run
+
+The results from a previous decontamination run can be used to speed-up the script under the following conditions:
+- the new dataset is a subset (or equal) of the previously decontaminated dataset
+- the new set of strings to decontaminate contains the strings from the previous run. (Code does not yet support the case where some strings are no longer decontaminated)
+
+```bash
+python find_substrings.py --dataset-name bigcode/stack-dedup-alt-filter-no-pii --output-dir /path/to/output  --num-proc 32 --cached-decontamination-dir /path/to/previous/output/ --cache-retrieval-key content --split-languages
+```
