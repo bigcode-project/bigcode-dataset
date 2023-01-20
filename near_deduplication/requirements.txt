@@ -1,0 +1,5 @@
+datasets>=2.5.1
+typer>=0.6.1
+tqdm>=4.64.1
+scipy>=1.9.2
+numpy>=1.22.4
