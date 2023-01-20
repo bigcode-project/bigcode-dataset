@@ -12,3 +12,4 @@ necessary used for model training.
   - number of stars.
   - comments to code ratio.
   - tokenizer fertility
+- `decontamination`: script to remove files that match test-samples from code generation benchmarks.
