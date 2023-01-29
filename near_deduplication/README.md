@@ -29,7 +29,41 @@ python minhash_deduplication_alt.py --dataset codeparrot/codeparrot-clean-valid 
 python minhash_deduplication_alt.py --help
 ```
 
-#### Implementation Analysis
+Spark Script
+
+```bash
+# Upload the dataset to a bigquery table first!
+export CLUSTER_NAME=chenghao-temp
+export PROJECT_ID=huggingface-science-codeparrot
+export REGION=us-central1
+export ZONE=us-central1-a
+
+gcloud dataproc clusters create $CLUSTER_NAME \
+    --enable-component-gateway \
+    --region $REGION \
+    --zone $ZONE \
+    --master-machine-type c2d-standard-16 \
+    --master-boot-disk-size 500 \
+    --num-workers 10 \
+    --worker-machine-type c2d-standard-16 \
+    --worker-boot-disk-size 500 \
+    --image-version 2.0-debian10 \
+    --project $PROJECT_ID
+
+gcloud dataproc jobs submit pyspark --cluster ${CLUSTER_NAME} \
+    --region $REGION \
+    --jars gs://spark-lib/bigquery/spark-bigquery-latest_2.12.jar \
+    --driver-log-levels root=WARN \
+    --properties="spark.executor.memory"="50g","spark.driver.memory"="8g","spark.executor.cores"="14" \
+    near_deduplication/minhash_deduplication_spark.py \
+    -- \
+    --table "huggingface-science-codeparrot.the_stack_java.java" \
+    --output "gs://chenghao-data/dataproc_output/deduplicated"
+```
+
+With above settings, it took about 40 minutes to deduplicate the Java subset, 15x faster than the following python implementation in a comparable single-machine environment.
+
+#### Python Implementation Analysis
 
 This section is a brief analysis of the time complexity and memory complexity. It is not a rigorous prove, but it should give you a general idea of how the implementation works.
 
