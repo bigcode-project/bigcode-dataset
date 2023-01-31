@@ -25,10 +25,10 @@ python find_substrings.py --dataset-name bigcode/stack-dedup-alt-filter-no-pii -
 
 ## Near Matching with MinHash and LSH
 
-This is similar to the near deduplication script `data_analysis/near-deduplication/minhash_deduplication_alt.py` with one modification: we use benchmark datasets as index source instead of the dataset itself.
+Instead of looking for exact matches from the test sets, in this section we look for near duplicates. This is similar to the near deduplication script [`data_analysis/near-deduplication/minhash_deduplication_alt.py`](https://github.com/bigcode-project/bigcode-analysis/blob/main/data_analysis/near-deduplication/minhash_deduplication_alt.py) with one modification: we use benchmark datasets as index source instead of the dataset itself.
 
 ### Usage:
-1. Update the script to include any benchmark you want to check against in `DATASETS_TO_CHECK`. Be sure to create a global variable for the index using the same name in that config. Benchmark columns should be of type string or sequence of string, so that they can be concatenated.
+1. Update the script to include any benchmark (from Hugging Face hub) you want to check against in `DATASETS_TO_CHECK` variable from `minhash.py`. Be sure to create a global variable for the index using the same name in that config. Benchmark columns should be of type string or sequence of string, so that they can be concatenated.
 2. Then you can run the script by
 ```bash
 pip install -r requirements_minhash.txt

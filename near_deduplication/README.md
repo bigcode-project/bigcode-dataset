@@ -1,6 +1,6 @@
 # Near deduplication
 
-This is our implementation of near deduplication for BigCode dataset. It is largely evolved from the [original repo](https://github.com/bigcode-project/bigcode-dataset).
+This is our implementation of near deduplication for BigCode dataset. It is largely evolved from the [original repo](https://github.com/bigcode-project/bigcode-analysis/tree/main/data_analysis/near-deduplication).
 
 ### Setup
 
@@ -20,13 +20,13 @@ And make sure you have git-lfs installed.
 
 ```bash
 # Quick example
-python minhash_deduplication_alt.py --dataset codeparrot/codeparrot-clean-valid \  
+python minhash_deduplication.py --dataset codeparrot/codeparrot-clean-valid \  
     --split train \
     --column content \
     --cache-dir .cache \
     --verbose
 # For details on the arguments, see the help message
-python minhash_deduplication_alt.py --help
+python minhash_deduplication.py --help
 ```
 
 Spark Script
@@ -61,16 +61,16 @@ gcloud dataproc jobs submit pyspark --cluster ${CLUSTER_NAME} \
     --output "gs://chenghao-data/dataproc_output/deduplicated"
 ```
 
-With above settings, it took about 40 minutes to deduplicate the Java subset, 15x faster than the following python implementation in a comparable single-machine environment.
+With above settings, it took about 40 minutes to deduplicate the Java subset (42 million docs, 319GB), 15x faster than the following python implementation in a comparable single-machine environment.
 
 #### Python Implementation Analysis
 
-This section is a brief analysis of the time complexity and memory complexity. It is not a rigorous prove, but it should give you a general idea of how the implementation works.
+This section is a brief analysis of the time complexity and memory complexity. It is not a rigorous proof, but it should give you a general idea of how the implementation works.
 
 ##### Scaling
 
 To understand the limitation of current deduplication implementation, it is important to have an idea of how each step in the pipeline affects the overall time:
-1. Hashing is fast, but it takes loner for long documents. Hashing scales with both the number of cores and single core performance (clock speed, for example). With `datasets`'s caching, it also does not require much memory.
+1. Hashing is fast, but it takes longer for long documents. Hashing scales with both the number of cores and single core performance (clock speed, for example). With `datasets`'s caching, it also does not require much memory.
 2. Indexing is basically putting hash signatures into different buckets. This is one bottleneck in this pipeline. In an ideal situation where MapReduce is seamlessly integrated with other parts, it can be further improved with distributed buckets. Finding duplicates can be done after the indexing step or during the index building.
 4. Depending on how you decide to group duplicates, you can build a graph and then do connected component analysis or use simple algorithm like union-find.
 5. What to do with a group of duplicates is also an open question. We opt to keep one document within a group/cluster in this case.
@@ -82,9 +82,9 @@ We report here some stats on the experiments we did along the way with a 80-core
 For SantaCoder, our results can be replicated by the following commands:
 
 ```bash
-python minhash_deduplication_alt.py --dataset bigcode/the-stack-dedup-pjj --data-dir data/java --revision v1.1.a1 --cache-dir cache2 --ngram-size 5 --threshold 0.7 --min-token-length 10 --fast
-python minhash_deduplication_alt.py --dataset bigcode/the-stack-dedup-pjj --data-dir data/javascript --revision v1.1.a1 --cache-dir cache2 --ngram-size 5 --threshold 0.7 --min-token-length 10 --fast
-python minhash_deduplication_alt.py --dataset bigcode/the-stack-dedup-pjj --data-dir data/python --revision v1.1.a1 --cache-dir cache2 --ngram-size 5 --threshold 0.7 --min-token-length 10 --fast
+python minhash_deduplication.py --dataset bigcode/the-stack-dedup-pjj --data-dir data/java --revision v1.1.a1 --cache-dir cache2 --ngram-size 5 --threshold 0.7 --min-token-length 10 --fast
+python minhash_deduplication.py --dataset bigcode/the-stack-dedup-pjj --data-dir data/javascript --revision v1.1.a1 --cache-dir cache2 --ngram-size 5 --threshold 0.7 --min-token-length 10 --fast
+python minhash_deduplication.py --dataset bigcode/the-stack-dedup-pjj --data-dir data/python --revision v1.1.a1 --cache-dir cache2 --ngram-size 5 --threshold 0.7 --min-token-length 10 --fast
 ```
 
 Java Results as of Dec 20, 2022
