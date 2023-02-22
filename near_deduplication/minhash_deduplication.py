@@ -59,6 +59,8 @@ def ngrams(sequence: List[str], n: int) -> Iterable:
     Iterable
         The n-grams generated from the sequence.
     """
+    if len(sequence) < n:
+        return sequence
     iterables = tee(sequence, n)
     for i, sub_iterable in enumerate(iterables):
         for _ in range(i):
