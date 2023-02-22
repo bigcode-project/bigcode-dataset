@@ -128,7 +128,7 @@ if __name__ == "__main__":
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO,
-        handlers=[logging.FileHandler("filtering.log"), logging.StreamHandler()],
+        handlers=[logging.FileHandler(args.log_file), logging.StreamHandler()],
     )
     logger.info(
         f"** The job is running with the following arguments: **\n{args}\n **** "
@@ -310,6 +310,6 @@ if __name__ == "__main__":
             f"Saving the dataset in manual shards in a clone of {args.hub_username + args.remote_repo}"
         )
     save_manual_shards(
-        dataset, user=args.hub_username, remote_dataset_repo=args.remote_repo
+        dataset, user=args.hub_username, remote_dataset_repo=args.remote_repo, out_path=args.out_path,  subset=args.subset
     )
     logger.info(f"Dataset successfully saved in {time.time() - t_start:.2f} seconds")

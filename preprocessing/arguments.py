@@ -65,3 +65,11 @@ class FilteringArguments:
         default="loubnabnl",
         metadata={"help": "Username for the hub."},
     )
+    out_path: Optional[str] = field(
+        default=None,
+        metadata={"help": "Local path to save the ouptut dataset."},
+    )
+    log_file: Optional[str] = field(
+        default="filtering.log",
+        metadata={"help": "File to write log to."},
+    )
