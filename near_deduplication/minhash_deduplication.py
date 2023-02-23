@@ -43,7 +43,7 @@ logger.setLevel(logging.INFO)
 datasets.logging.set_verbosity_error()
 
 
-def ngrams(sequence: List[str], n: int) -> Iterable:
+def ngrams(sequence: List[str], n: int, min_ngram_size: int) -> Iterable:
     """
     Directly taken from nltk package to avoid dependency.
 
@@ -53,12 +53,16 @@ def ngrams(sequence: List[str], n: int) -> Iterable:
         The sequence of items to be n-grammed.
     n : int
         The order of the n-grams to be extracted.
+    min_ngram_size : int
+        The minimum size of n-grams.
 
     Returns
     -------
     Iterable
         The n-grams generated from the sequence.
     """
+    if len(sequence) < min_ngram_size:
+        return []
     iterables = tee(sequence, n)
     for i, sub_iterable in enumerate(iterables):
         for _ in range(i):
@@ -89,6 +93,7 @@ def embed_func(
     ngram_size: int,
     hashranges: List[Tuple[int, int]],
     permutations: np.ndarray,
+    min_ngram_size: int = 5,
 ) -> Dict[str, Any]:
     """
     Combined with some datasketch code to better parallelize computation.
@@ -107,6 +112,8 @@ def embed_func(
         The ranges of hash values.
     permutations : np.ndarray
         The permutations for the minhash.
+    min_ngram_size : int
+        The minimum size of n-grams.
 
     Returns
     -------
@@ -114,7 +121,7 @@ def embed_func(
         The hash values in each range and the index.
     """
     hashvalues = np.ones(num_perm, dtype=np.uint64) * MAX_HASH
-    tokens = {" ".join(t) for t in ngrams(NON_ALPHA.split(content), ngram_size)}
+    tokens = {" ".join(t) for t in ngrams(NON_ALPHA.split(content), ngram_size, min_ngram_size)}
     hv = np.array([sha1_hash32(token.encode("utf-8")) for token in tokens], dtype=np.uint64)  # noqa: E501
     a, b = permutations
     phv = np.bitwise_and(((hv * np.tile(a, (len(hv), 1)).T).T + b) % MERSENNE_PRIME, MAX_HASH)  # noqa: E501
@@ -213,6 +220,7 @@ if __name__ == "__main__":
         ngram_size: int = typer.Option(5, help="The ngram size to use for MinHash"),
         num_perm: int = typer.Option(256, help="Number of permutations"),
         threshold: float = typer.Option(0.7, help="Minhash threshold"),
+        min_ngram_size: int = typer.Option(5, help="The minimum ngram size to be included"),
         output: str = typer.Option(None, help="Store the deduplicated dataset"),
     ):
         global uf
@@ -261,6 +269,7 @@ if __name__ == "__main__":
                 "hashranges": HASH_RANGES,
                 "ngram_size": ngram_size,
                 "permutations": PERMUTATIONS,
+                "min_ngram_size": min_ngram_size,
             },
             input_columns=[column],
             remove_columns=ds.column_names,
