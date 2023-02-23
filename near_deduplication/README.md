@@ -31,6 +31,8 @@ python minhash_deduplication.py --help
 
 Spark Script
 
+Warning: Big Query might change your list schema in the output. I haven't figured out how to avoid list.item showing up. So you might need to manually change the schema in the output.
+
 ```bash
 # Upload the dataset to a bigquery table first!
 export CLUSTER_NAME=chenghao-temp
