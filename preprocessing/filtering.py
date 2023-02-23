@@ -8,6 +8,7 @@ import fnmatch
 import logging
 import time
 from functools import partial
+import csv
 
 import numpy as np
 from datasets import load_dataset
@@ -19,7 +20,7 @@ from utils.manual_sharding import save_manual_shards
 from utils.text_extraction import get_nl_ratio
 
 # define list of filters to apply
-ALL_FILTERS = ["basic", "stars", "comments", "fertility"]
+ALL_FILTERS = ["basic", "basic_per_extension", "stars", "comments", "fertility"]
 THRESHOLDS_FERTILITY = {"python": 2.5, "java": 2.9, "javascript": 2.6}
 
 
@@ -89,6 +90,67 @@ def basic_filters(example):
     return True
 
 
+def basic_filters_per_extension(example, ext_to_filter):
+    """Filter files based on line length and % alphanumeric characters.
+    The filtering parameters depend on the file extension, given by `ext_to_filter`"""
+    # Get the filter-params we want to use
+    (include, line_max, line_mean, alpha_frac) = ext_to_filter[(language_format_from_dataset(example["lang"]), example["ext"])]
+    if not include:
+        return False
+    if line_max and example["max_line_length"] > line_max:
+        return False
+    elif line_mean and example["avg_line_length"] > line_mean:
+        return False
+    elif alpha_frac and example["alphanum_fraction"] < alpha_frac:
+        return False
+    return True
+
+
+def language_format_from_dataset(lang: str):
+    """Convert: Language field in dataset -> language field in csv file that defines the filters."""
+    # TODO: other special cases?
+    if lang == "C#":
+        return "c-sharp"
+    if lang == "F#":
+        return "f-sharp"
+    return lang.lower()
+
+def language_format_from_data_dir(lang: str):
+    """Convert: Language subset name in dedup data -> language field in csv file that defines the filters."""
+    # TODO: other special cases?
+    if lang == "cpp":
+        return "c++"
+    return lang
+
+
+def get_filter_params(row: dict):
+    """Extract filter parameters from csv row"""
+    include = row["Include"] == "1"
+    try:
+        line_max = int(row["Long_line_threshold"])
+    except ValueError:
+        line_max = None
+    line_mean = 100 if line_max else None
+    try:
+        alpha_frac = float(row["Alphanum_threshold"])
+    except ValueError:
+        alpha_frac = None
+    return include, line_max, line_mean, alpha_frac
+
+
+def load_filter_csv(path: str, language: str = None):
+    """Load csv file that specifies the filter to apply for each (lang, extension)"""
+    # (Lang, extension) -> filter_args
+    ext_to_filter = {}
+    with open(path) as f:
+        for row in csv.DictReader(f):
+            # Only take the rows corresponding to the language if specified
+            if language is None or row["language"] == language:
+                ext_to_filter[(row["language"], row["extension"])] = get_filter_params(row)
+    assert len(ext_to_filter) > 0, f"Did not find filtering params corresponding to language: `{language}` in: {path}"
+    return ext_to_filter
+
+
 def char_token_ratio(examples, tokenizer):
     ratio_list = []
     for code in examples["content"]:
@@ -111,6 +173,13 @@ def filter_tokenizer(examples):
 
 def get_size_text(example):
     return {"size": len(example["content"])}
+
+
+LICENSE_COLUMNS = ['max_stars_repo_licenses', 'max_issues_repo_licenses', 'max_forks_repo_licenses']
+def fix_license_cols(example):
+    for col in LICENSE_COLUMNS:
+        example[col] = [x["item"] for x in example[col]["list"]]
+    return example
 
 
 if __name__ == "__main__":
@@ -145,6 +214,8 @@ if __name__ == "__main__":
     if "size" not in dataset.column_names:
         logger.info("Add text size column")
         dataset = dataset.map(get_size_text)
+    if args.fix_license_columns:
+        dataset = dataset.map(fix_license_cols, num_proc=args.num_workers)
     logger.info(
         f"Dataset size before any filtering: {len(dataset)} examples, {sum(dataset['size']) / 1e9:.2f} GB"
     )
@@ -193,6 +264,36 @@ if __name__ == "__main__":
             old_size_gb = sum(dataset["size"])
             t_start = time.time()
             ds = dataset.filter(basic_filters)
+            logger.info(f"Filtering done in {time.time() - t_start:.2f} seconds")
+            logger.info(
+                f"Percentage of removed files: {np.round((old_size - len(ds))*100/old_size, 2)}%"
+            )
+            new_size_gb = sum(ds["size"])
+            logger.info(
+                f"Dataset size before {filter} filtering: {old_size} examples, {old_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"Dataset size after {filter} filtering: {len(ds)} examples, {new_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"Percentage of volume removed {np.round((old_size_gb - new_size_gb)*100/old_size_gb, 2)}%"
+            )
+            dataset = ds
+        
+        elif filter == "basic_per_extension":
+            assert args.per_extension_filter_csv is not None
+            language = language_format_from_data_dir(args.subset.split("/")[-1]) if args.subset is not None else None
+            logger.info(
+                f"===== Language: {language}. Basic filtering with line_max, avg_line, and alpha_frac given by : {args.per_extension_filter_csv} ====="
+            )
+            logger.info(
+                f""
+            )
+            ext_to_filter = load_filter_csv(args.per_extension_filter_csv, language=language)
+            old_size = len(dataset)
+            old_size_gb = sum(dataset["size"])
+            t_start = time.time()
+            ds = dataset.filter(partial(basic_filters_per_extension, ext_to_filter=ext_to_filter))
             logger.info(f"Filtering done in {time.time() - t_start:.2f} seconds")
             logger.info(
                 f"Percentage of removed files: {np.round((old_size - len(ds))*100/old_size, 2)}%"
@@ -312,4 +413,4 @@ if __name__ == "__main__":
     save_manual_shards(
         dataset, user=args.hub_username, remote_dataset_repo=args.remote_repo, out_path=args.out_path,  subset=args.subset
     )
-    logger.info(f"Dataset successfully saved in {time.time() - t_start:.2f} seconds")
+    logger.info(f"Dataset successfully saved at {args.out_path}/{args.subset} in {time.time() - t_start:.2f} seconds")

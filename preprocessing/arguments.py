@@ -45,6 +45,10 @@ class FilteringArguments:
         default=5,
         metadata={"help": "Minimum threshold for number of stars."},
     )
+    per_extension_filter_csv: Optional[str] = field(
+        default=None,
+        metadata={"help": "Path to csv file containing the filters to be applied depending on file extension"},
+    )
     num_workers: Optional[int] = field(
         default=96,
         metadata={"help": "Number of workers for multiprocessing."},
@@ -72,4 +76,8 @@ class FilteringArguments:
     log_file: Optional[str] = field(
         default="filtering.log",
         metadata={"help": "File to write log to."},
+    )
+    fix_license_columns: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Fix license columns."},
     )
