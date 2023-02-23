@@ -2,6 +2,7 @@
 """data to filter out of the dataset"""
 import json
 import itertools
+from pathlib import Path
 
 from datasets import load_dataset
 
@@ -12,6 +13,26 @@ TEST_IDS = list(range(11, 511))
 # HumanEval solutions that are considered simple/generic enough to be kept in the training dataset
 HUMAN_EVAL_STRINGS_OK = ['return x + y', 'return len(string)', 'return n**2', 'return ''.join(strings)']
 
+DS_1000_PATH = Path("/data/ds-1000/ds1000_data/")
+
+
+def extract_ds_1000_prompt(prompt: str):
+    if "SOLUTION START" in prompt:
+        assert prompt.count("SOLUTION START") == 1
+        return prompt.split("SOLUTION START")[0]
+    elif "BEGIN SOLUTION" in prompt:
+        assert prompt.count("BEGIN SOLUTION") == 1
+        return prompt.split("BEGIN SOLUTION")[0]
+    else:
+        raise ValueError()
+
+
+def load_ds_1000():
+    data = []
+    for prompt_file in DS_1000_PATH.glob("*/Insertion/q*/prompt.txt"):
+        with open(prompt_file) as f:
+            data.append(extract_ds_1000_prompt(f.read()))
+    return data
 
 def load_mbpp():
     data = []
@@ -69,11 +90,11 @@ def apps_solutions():
     return list(res)
 
 def multipl_e_docstrings():
-    # languages = [ 
-    #     "cpp", "cs", "d", "go", "java", "jl", "js", "lua", "php", "pl", "py", "r", 
-    #     "rb", "rkt", "rs", "scala", "sh", "swift", "ts"
-    # ]
-    languages = ["py", "java", "js"]
+    languages = [ 
+        "cpp", "cs", "d", "go", "java", "jl", "js", "lua", "php", "pl", "py", "r", 
+        "rb", "rkt", "rs", "scala", "sh", "swift", "ts"
+    ]
+    # languages = ["py", "java", "js"]
     src_datas = ["humaneval", "mbpp"]
     variations = ["", "-remove"]
     data = []
@@ -88,8 +109,8 @@ def multipl_e_docstrings():
 
 
 
-def load_dataset_column(dataset: str, column: str, split: str):
-    ds = load_dataset(dataset, split=split)
+def load_dataset_column(dataset: str, column: str, split: str, name=None):
+    ds = load_dataset(dataset, split=split, name=name)
     res = [sample[column].strip() for sample in ds]
     # Only return non-empty strings
     return [sample for sample in res if len(sample) > 0]
@@ -106,8 +127,11 @@ FILTER_OUT = {
     "apps_docstrings": load_dataset_column("codeparrot/apps", "question", "test"),
     # 115212 examples to filter-out in apps-solutions, which would take way too much time without any hashing trick
     # "apps_solutions": apps_solutions(),
-    "multipl-e_docstrings": multipl_e_docstrings(),
+    # MultiPL-E samples are from HumanEval and MBPP: we are already looking for them
+    # "multipl-e_docstrings": multipl_e_docstrings(),
     # There is no solution provided with multipl-e
+    "gsm8k_questions": load_dataset_column("gsm8k", "question", "test", "main"),
+    "ds_1000_prompts": load_ds_1000()
 }
 
 

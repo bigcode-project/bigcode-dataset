@@ -81,3 +81,7 @@ class FilteringArguments:
         default=False,
         metadata={"help": "Fix license columns."},
     )
+    run_decontamination: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Run decontamination after the filtering"},
+    )

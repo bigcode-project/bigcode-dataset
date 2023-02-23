@@ -2,14 +2,15 @@ from copy import deepcopy
 from glob import glob
 import json
 import os
+import shutil
 import sys
 import argparse
 
 from datasets import load_dataset
 
-from benchmark_data import FILTER_OUT
-from utils.dataset_sharding import shard_dataset
-from utils.utils import add_dict
+from .benchmark_data import FILTER_OUT
+from .utils.dataset_sharding import shard_dataset
+from .utils.utils import add_dict
 
 
 SHARD_SIZE = 1000 << 20  # 1GB
@@ -125,12 +126,20 @@ class Meta:
         self.meta_dict[lang][filter_reason] += 1
 
 class SubstringFilterer(object):
-    def __init__(self, output_dir: str, cached_decontamination_dir: str, split_languages: bool, cache_retrieval_key: str) -> None:
+    def __init__(
+            self,
+            output_dir: str,
+            cached_decontamination_dir: str,
+            split_languages: bool,
+            cache_retrieval_key: str,
+            tmp_meta_dir = None,
+            data_dir = None
+    ) -> None:
         self.output_dir = output_dir
         self.split_languages = split_languages
         self.cache_retrieval_key = cache_retrieval_key
-        self.tmp_meta_dir = f"{output_dir}/tmp/meta"
-        self.data_dir = f"{output_dir}/data"
+        self.tmp_meta_dir = tmp_meta_dir if tmp_meta_dir is not None else f"{output_dir}/tmp/meta"
+        self.data_dir = data_dir if data_dir is not None else f"{output_dir}/data"
         os.makedirs(self.tmp_meta_dir, exist_ok=True)
         os.makedirs(self.data_dir, exist_ok=True)
         # Save benchmark data
@@ -221,6 +230,8 @@ class SubstringFilterer(object):
         print("Number of excluded examples: ", len(meta))
         with open(self.excluded_data_cache, "w") as f:
             json.dump(meta, f)
+        # delete temporary meta data
+        shutil.rmtree(self.tmp_meta_dir)
     
     def save(self, filtered, num_proc):
         # Save shards
@@ -240,6 +251,7 @@ class SubstringFilterer(object):
         self.finalize()
         # Save filtered dataset.
         self.save(filtered, num_proc)
+        return filtered
 
 
 def arguments():

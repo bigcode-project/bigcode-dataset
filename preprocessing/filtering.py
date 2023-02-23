@@ -117,9 +117,15 @@ def language_format_from_dataset(lang: str):
 
 def language_format_from_data_dir(lang: str):
     """Convert: Language subset name in dedup data -> language field in csv file that defines the filters."""
-    # TODO: other special cases?
     if lang == "cpp":
         return "c++"
+    return lang
+
+
+def language_format_from_csv_to_data_dir(lang: str):
+    """Convert: language field in csv -> Language subset name in dedup data"""
+    if lang == "c++":
+        return "cpp"
     return lang
 
 
@@ -414,3 +420,30 @@ if __name__ == "__main__":
         dataset, user=args.hub_username, remote_dataset_repo=args.remote_repo, out_path=args.out_path,  subset=args.subset
     )
     logger.info(f"Dataset successfully saved at {args.out_path}/{args.subset} in {time.time() - t_start:.2f} seconds")
+
+    # Run decontamination
+    if args.run_decontamination:
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
+        from decontamination.find_substrings import SubstringFilterer
+
+        output_dir_decontaminated = f"{args.out_path}_decontaminate/{args.subset}"
+
+        filterer = SubstringFilterer(
+            output_dir=output_dir_decontaminated,
+            cached_decontamination_dir=None,  # no previous cached run
+            split_languages=False,
+            cache_retrieval_key="",
+            data_dir=output_dir_decontaminated
+        )
+
+        filtered = filterer.run(dataset, args.num_workers, args.batch_size)
+
+        filtered_size_gb = sum(filtered["size"])
+        logger.info(
+            f"Removed {len(dataset) - len(filtered)} / {len(dataset)} files"
+        )
+        logger.info(
+            f"Dataset size after decontamination: {len(filtered)} examples, {filtered_size_gb / 1e9:.2f} GB"
+        )
