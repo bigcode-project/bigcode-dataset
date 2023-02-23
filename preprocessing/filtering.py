@@ -94,7 +94,14 @@ def basic_filters_per_extension(example, ext_to_filter):
     """Filter files based on line length and % alphanumeric characters.
     The filtering parameters depend on the file extension, given by `ext_to_filter`"""
     # Get the filter-params we want to use
-    (include, line_max, line_mean, alpha_frac) = ext_to_filter[(language_format_from_dataset(example["lang"]), example["ext"])]
+    # extension `None` is an empty string in the csv
+    try:
+        (include, line_max, line_mean, alpha_frac) = ext_to_filter[(language_format_from_dataset(
+            example["lang"]), example["ext"] if example["ext"] is not None else ""
+        )]
+    except KeyError as e:
+        logging.error(str(e) + f":{example['ext']} not in ext_to_filter")
+        include = False
     if not include:
         return False
     if line_max and example["max_line_length"] > line_max:
@@ -296,6 +303,9 @@ if __name__ == "__main__":
                 f""
             )
             ext_to_filter = load_filter_csv(args.per_extension_filter_csv, language=language)
+            logger.info(
+                f"Loaded the following filters-per-extension: {ext_to_filter}"
+            )
             old_size = len(dataset)
             old_size_gb = sum(dataset["size"])
             t_start = time.time()
