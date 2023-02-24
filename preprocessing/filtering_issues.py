@@ -10,13 +10,9 @@ from transformers import HfArgumentParser
 
 from arguments import FilteringArguments
 from utils.manual_sharding import save_manual_shards
-from utils.utils_issues import (
-    filter_based_users,
-    merge_text_columns,
-    remove_bot_comments,
-    replace_usernames,
-    strip_automated_email_text,
-)
+from utils.utils_issues import (filter_based_users, merge_text_columns,
+                                remove_bot_comments, replace_usernames,
+                                strip_automated_email_text)
 
 MIN_CHARS = 200
 MAX_CHARS = 7000
@@ -78,9 +74,7 @@ def preprocess(logger, args):
     dataset = dataset.map(remove_bot_comments, num_proc=args.num_workers)
     dataset = dataset.filter(lambda x: not x["bot_issue"])
     dataset = dataset.map(
-        lambda x: {
-            "text_size": sum([len(event["text"]) for event in x["events"]])
-        },
+        lambda x: {"text_size": sum([len(event["text"]) for event in x["events"]])},
         num_proc=args.num_workers,
     )
     size_no_bots = len(dataset)

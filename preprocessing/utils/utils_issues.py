@@ -155,8 +155,8 @@ def filter_based_users(example, minimum=200, maximum=7000, max_events=10):
         return True
     else:
         if (
-            example["text_size_no_bots"] >= minimum
-            and example["text_size_no_bots"] <= maximum
+            example["text_size"] >= minimum
+            and example["text_size"] <= maximum
             and example["event_count"] <= max_events
         ):
             return True
