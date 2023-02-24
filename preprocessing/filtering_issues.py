@@ -4,12 +4,12 @@ import logging
 import time
 from functools import partial
 
-from arguments import FilteringArguments
 from datasets import load_dataset
 from datasets.utils.logging import set_verbosity_info
 from transformers import HfArgumentParser
-from utils.manual_sharding import save_manual_shards
 
+from arguments import FilteringArguments
+from utils.manual_sharding import save_manual_shards
 from utils.utils_issues import (
     filter_based_users,
     merge_text_columns,
@@ -63,13 +63,6 @@ def preprocess(logger, args):
         dataset.map(merge_text_columns, num_proc=args.num_workers)
         .map(strip_automated_email_text, num_proc=args.num_workers)
         .map(
-            lambda x: {
-                "user_count": len(set(event["author"] for event in x["events"]))
-            },
-            num_proc=args.num_workers,
-        )
-        .map(lambda x: {"event_count": len(x["events"])}, num_proc=args.num_workers)
-        .map(
             lambda x: {"text_size": sum([len(event["text"]) for event in x["events"]])},
             num_proc=args.num_workers,
         )
@@ -86,15 +79,24 @@ def preprocess(logger, args):
     dataset = dataset.filter(lambda x: not x["bot_issue"])
     dataset = dataset.map(
         lambda x: {
-            "text_size_no_bots": sum([len(event["text"]) for event in x["events"]])
+            "text_size": sum([len(event["text"]) for event in x["events"]])
         },
         num_proc=args.num_workers,
     )
     size_no_bots = len(dataset)
-    size_no_bots_gb = sum(dataset["text_size_no_bots"])
-    log_stats(logger, "bots filter", old_size, size_no_bots, old_size_gb, size_no_bots_gb)
+    size_no_bots_gb = sum(dataset["text_size"])
+    log_stats(
+        logger, "bots filter", old_size, size_no_bots, old_size_gb, size_no_bots_gb
+    )
 
     # filter based on users
+    # add count columns
+    logger.info(f"===== Adding users and events count columns =====")
+    dataset = dataset.map(
+        lambda x: {"user_count": len(set(event["author"] for event in x["events"]))},
+        num_proc=args.num_workers,
+    ).map(lambda x: {"event_count": len(x["events"])}, num_proc=args.num_workers)
+
     logger.info(f"===== Filtering issues based on users =====")
     dataset = dataset.filter(
         partial(
@@ -105,7 +107,7 @@ def preprocess(logger, args):
         )
     )
     size_users = len(dataset)
-    size_users_gb = sum(dataset["text_size_no_bots"])
+    size_users_gb = sum(dataset["text_size"])
     log_stats(
         logger, "users filter", size_no_bots, size_users, size_no_bots_gb, size_users_gb
     )
@@ -122,6 +124,7 @@ def preprocess(logger, args):
     )
     logger.info(f"Dataset processed in {time.time() - t_start:.2f} seconds")
     return dataset
+
 
 if __name__ == "__main__":
     args = parse_args()
