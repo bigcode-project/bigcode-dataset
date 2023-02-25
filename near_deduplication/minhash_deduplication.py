@@ -220,7 +220,7 @@ if __name__ == "__main__":
         ngram_size: int = typer.Option(5, help="The ngram size to use for MinHash"),
         num_perm: int = typer.Option(256, help="Number of permutations"),
         threshold: float = typer.Option(0.7, help="Minhash threshold"),
-        min_ngram_size: int = typer.Option(5, help="The minimum ngram size to be included"),
+        min_ngram_size: int = typer.Option(5, help="Shorter documents will be removed"),
         output: str = typer.Option(None, help="Store the deduplicated dataset"),
     ):
         global uf
