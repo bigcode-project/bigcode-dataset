@@ -19,11 +19,14 @@ And make sure you have git-lfs installed.
 ### Usage
 
 ```bash
+# For details on the arguments, see the help message
+python minhash_deduplication.py --help
 # Quick example
 python minhash_deduplication.py --dataset codeparrot/codeparrot-clean-valid \  
     --split train \
     --column content \
     --cache-dir .cache \
+    --min-ngram-size 5 \
     --verbose
 # For details on the arguments, see the help message
 python minhash_deduplication.py --help
@@ -60,7 +63,7 @@ gcloud dataproc jobs submit pyspark --cluster ${CLUSTER_NAME} \
     near_deduplication/minhash_deduplication_spark.py \
     -- \
     --table "huggingface-science-codeparrot.the_stack_java.java" \
-    --output "gs://chenghao-data/dataproc_output/deduplicated"
+    --output "gs://chenghao-data/dataproc_output/deduplicated" \
 ```
 
 With above settings, it took about 40 minutes to deduplicate the Java subset (42 million docs, 319GB), 15x faster than the following python implementation in a comparable single-machine environment.
