@@ -100,6 +100,8 @@ def basic_filters_per_extension(example, ext_to_filter):
             example["lang"]), example["ext"] if example["ext"] is not None else ""
         )]
     except KeyError as e:
+        # Some extensions are not in the csv. This happens for dockerfiles.
+        # Exclude these files
         logging.error(str(e) + f":{example['ext']} not in ext_to_filter")
         include = False
     if not include:
@@ -120,7 +122,7 @@ def language_format_from_dataset(lang: str):
         return "c-sharp"
     if lang == "F#":
         return "f-sharp"
-    return lang.lower()
+    return lang.lower().replace(" ", "-")
 
 def language_format_from_data_dir(lang: str):
     """Convert: Language subset name in dedup data -> language field in csv file that defines the filters."""
@@ -426,10 +428,13 @@ if __name__ == "__main__":
         print(
             f"Saving the dataset in manual shards in a clone of {args.hub_username + args.remote_repo}"
         )
-    save_manual_shards(
-        dataset, user=args.hub_username, remote_dataset_repo=args.remote_repo, out_path=args.out_path,  subset=args.subset
-    )
-    logger.info(f"Dataset successfully saved at {args.out_path}/{args.subset} in {time.time() - t_start:.2f} seconds")
+    try:
+        save_manual_shards(
+            dataset, user=args.hub_username, remote_dataset_repo=args.remote_repo, out_path=args.out_path,  subset=args.subset
+        )
+        logger.info(f"Dataset successfully saved at {args.out_path}/{args.subset} in {time.time() - t_start:.2f} seconds")
+    except FileExistsError:
+        logger.warning(f"Output dir already exists at {args.out_path}/{args.subset}. Will not save filtered data")
 
     # Run decontamination
     if args.run_decontamination:
