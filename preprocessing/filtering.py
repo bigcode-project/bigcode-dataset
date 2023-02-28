@@ -326,9 +326,9 @@ if __name__ == "__main__":
             old_size_gb = sum(dataset["size"])
             t_start = time.time()
             ds = dataset.filter(partial(basic_filters_per_extension, ext_to_filter=ext_to_filter))
-            logger.info(f"Filtering done in {time.time() - t_start:.2f} seconds")
+            logger.info(f"{filter} Filtering done in {time.time() - t_start:.2f} seconds")
             logger.info(
-                f"Percentage of removed files: {np.round((old_size - len(ds))*100/old_size, 2)}%"
+                f"{filter} Percentage of removed files: {np.round((old_size - len(ds))*100/old_size, 2)}%"
             )
             new_size_gb = sum(ds["size"])
             logger.info(
@@ -338,7 +338,7 @@ if __name__ == "__main__":
                 f"Dataset size after {filter} filtering: {len(ds)} examples, {new_size_gb / 1e9:.2f} GB"
             )
             logger.info(
-                f"Percentage of volume removed {np.round((old_size_gb - new_size_gb)*100/old_size_gb, 2)}%"
+                f"{filter} Percentage of volume removed {np.round((old_size_gb - new_size_gb)*100/old_size_gb, 2)}%"
             )
             dataset = ds
 
@@ -441,9 +441,9 @@ if __name__ == "__main__":
                 # batch_size=args.batch_size,
                 # num_proc=args.num_workers,
             )
-            logger.info(f"Filtering done in {time.time() - t_start:.2f} seconds")
+            logger.info(f"{filter} Filtering done in {time.time() - t_start:.2f} seconds")
             logger.info(
-                f"Percentage of removed files: {np.round((old_size - len(ds))*100/old_size, 2)}%"
+                f"{filter} Percentage of removed files: {np.round((old_size - len(ds))*100/old_size, 2)}%"
             )
             new_size_gb = sum(ds["size"])
             logger.info(
@@ -453,7 +453,7 @@ if __name__ == "__main__":
                 f"Dataset size after {filter} filtering: {len(ds)} examples, {new_size_gb / 1e9:.2f} GB"
             )
             logger.info(
-                f"Percentage of volume removed {np.round((old_size_gb - new_size_gb)*100/old_size_gb, 2)}%"
+                f"{filter} Percentage of volume removed {np.round((old_size_gb - new_size_gb)*100/old_size_gb, 2)}%"
             )
             dataset = ds
 
