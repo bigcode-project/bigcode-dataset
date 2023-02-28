@@ -17,3 +17,9 @@ python filtering.py --dataset_name bigcode/the-stack-smol --subset data/java --f
 In this case, the dataset is saved in parquet shards in a clone of `remote_repo`. If you want to push the data directly to the hub add `push_to_hub` flag. 
 
 A log file `filtering.log` is saved in the working directory with details about the processing and percentage of files and volume removed at each step.
+
+# Filtering GitHub Issues
+To filter GitHub conversations:
+```bash
+python filtering_issues.py --dataset_name bigcode/subset-github-issues --subset data/ --filters basic --hub_username loubnabnl --remote_repo test_filter_github_issues
+```

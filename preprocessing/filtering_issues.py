@@ -12,7 +12,8 @@ from arguments import FilteringArguments
 from utils.manual_sharding import save_manual_shards
 from utils.utils_issues import (filter_based_users, merge_text_columns,
                                 remove_bot_comments, replace_usernames,
-                                strip_automated_email_text)
+                                strip_automated_email_text,
+                                truncate_long_comments)
 
 MIN_CHARS = 200
 MAX_CHARS = 7000
@@ -67,6 +68,16 @@ def preprocess(logger, args):
     old_size_gb = sum(dataset["text_size"])
     logger.info(
         f"Dataset size before any filtering: {old_size} issues, total text in events is {old_size_gb/ 1e9:.2f} GB"
+    )
+
+    # truncate long comments
+    logger.info(f"===== Truncating long comments =====")
+    dataset = dataset.map(truncate_long_comments, num_proc=args.num_workers).map(
+        lambda x: {"text_size": sum([len(event["text"]) for event in x["events"]])},
+    )
+    new_size_gb = sum(dataset["text_size"])
+    log_stats(
+        logger, "truncating long comments", old_size, old_size, old_size_gb, new_size_gb
     )
 
     # bot filter

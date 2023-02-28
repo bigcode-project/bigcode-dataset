@@ -124,11 +124,20 @@ def strip_automated_email_text(example):
     return example
 
 
+def truncate_long_comments(example, max_size=7000):
+    # truncate very long comments
+    for event in example["events"]:
+        if len(event["text"]) > max_size:
+            event["text"] = event["text"][:max_size]
+    return example
+
+
 def remove_bot_comments(example):
     """Discard auto comments from issues based on author pattern matching"""
     filtered_events = []
     modified = False
-    for event in example["events"]:
+    last_removed = 0
+    for i, event in enumerate(example["events"]):
         author = event["author"]
         # assumes single `text' field rather than comment/description
         is_bot = (
@@ -139,6 +148,17 @@ def remove_bot_comments(example):
         if not is_bot:
             filtered_events.append(event)
         else:
+            if i > 0 and last_removed > 0 and last_removed < i - 1:
+                # if previous message was not removed, check if it was a bot call
+                previous_comment = example["events"][i - 1]["text"]
+                is_bot_call = author in previous_comment or previous_comment.startswith(
+                    "/"
+                )
+                if is_bot_call:
+                    filtered_events.pop()
+                    bot_calls["calls"].append(previous_comment)
+                    nb_calls += 1
+            last_removed = i
             modified = True
     example["events"] = filtered_events
     example["bot_issue"] = len(example["events"]) == 0
@@ -146,19 +166,18 @@ def remove_bot_comments(example):
     return example
 
 
-def filter_based_users(example, minimum=200, maximum=7000, max_events=10):
-    """We filter out files with only one user, except if the size
+def filter_based_users_size(example, minimum=200, maximum=7000, max_events=10):
+    """We filter out short files and those with only one user, except if the size
     of text in comments is between minimum and maximum characters
     and issue has less than max_events events.
     """
+    if example["text_size"] < minimum:
+        return False
     if example["user_count"] >= 2:
         return True
     else:
-        if (
-            example["text_size"] >= minimum
-            and example["text_size"] <= maximum
-            and example["event_count"] <= max_events
-        ):
+        assert example["text_size"] >= minimum
+        if example["text_size"] <= maximum and example["event_count"] <= max_events:
             return True
         return False
 
