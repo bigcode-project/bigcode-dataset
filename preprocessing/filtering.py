@@ -20,7 +20,7 @@ from utils.manual_sharding import save_manual_shards
 from utils.text_extraction import get_nl_ratio
 
 # define list of filters to apply
-ALL_FILTERS = ["basic", "basic_per_extension", "stars", "comments", "fertility"]
+ALL_FILTERS = ["basic", "basic_per_extension", "stars", "comments", "fertility", "xml"]
 THRESHOLDS_FERTILITY = {"python": 2.5, "java": 2.9, "javascript": 2.6}
 
 
@@ -96,7 +96,7 @@ def basic_filters_per_extension(example, ext_to_filter):
     # Get the filter-params we want to use
     # extension `None` is an empty string in the csv
     try:
-        (include, line_max, line_mean, alpha_frac) = ext_to_filter[(language_format_from_dataset(
+        (include, line_max, line_mean, alphanum_frac, alphabetic_frac) = ext_to_filter[(language_format_from_dataset(
             example["lang"]), example["ext"] if example["ext"] is not None else ""
         )]
     except KeyError as e:
@@ -110,7 +110,11 @@ def basic_filters_per_extension(example, ext_to_filter):
         return False
     elif line_mean and example["avg_line_length"] > line_mean:
         return False
-    elif alpha_frac and example["alphanum_fraction"] < alpha_frac:
+    # Filter files with low percentage of alphanumeric chars
+    elif alphanum_frac and example["alphanum_fraction"] < alphanum_frac:
+        return False
+    # Filter files with low percentage of alphabetic chars
+    elif alphabetic_frac and sum(map(str.isalpha, example['content'])) < alphabetic_frac * len(example['content']):
         return False
     return True
 
@@ -147,14 +151,19 @@ def get_filter_params(row: dict):
         line_max = None
     line_mean = 100 if line_max else None
     try:
-        alpha_frac = float(row["Alphanum_threshold"])
+        alphanum_frac = float(row["Alphanum_threshold"])
     except ValueError:
-        alpha_frac = None
-    return include, line_max, line_mean, alpha_frac
+        alphanum_frac = None
+    try:
+        alphabetic_frac = float(row["Alpha filter"])
+    except ValueError:
+        alphabetic_frac = None
+    return include, line_max, line_mean, alphanum_frac, alphabetic_frac
 
 
 def load_filter_csv(path: str, language: str = None):
-    """Load csv file that specifies the filter to apply for each (lang, extension)"""
+    """Load csv file that specifies the filter to apply for each (lang, extension).
+    TODO: add some tests. Check that filters are correctly set."""
     # (Lang, extension) -> filter_args
     ext_to_filter = {}
     with open(path) as f:
@@ -184,6 +193,11 @@ def filter_tokenizer(examples):
         else:
             values.append(True)
     return values
+
+
+def filter_xml(example):
+    """Filter-out XML files"""
+    return not ('<?xml version=' in example['content'][:100])
 
 
 def get_size_text(example):
@@ -299,7 +313,7 @@ if __name__ == "__main__":
             assert args.per_extension_filter_csv is not None
             language = language_format_from_data_dir(args.subset.split("/")[-1]) if args.subset is not None else None
             logger.info(
-                f"===== Language: {language}. Basic filtering with line_max, avg_line, and alpha_frac given by : {args.per_extension_filter_csv} ====="
+                f"===== Language: {language}. Basic filtering with line_max, avg_line, alphanum_frac and alphabetic_frac given by : {args.per_extension_filter_csv} ====="
             )
             logger.info(
                 f""
@@ -397,6 +411,35 @@ if __name__ == "__main__":
             )
             print(
                 f"Percentiles of fertility ratio in all dataset: 3rd, 5th, 10th, 95th and 99th: {np.percentile(dataset['fertility_ratio'], [3, 5, 10, 95, 99])}"
+            )
+            logger.info(f"Filtering done in {time.time() - t_start:.2f} seconds")
+            logger.info(
+                f"Percentage of removed files: {np.round((old_size - len(ds))*100/old_size, 2)}%"
+            )
+            new_size_gb = sum(ds["size"])
+            logger.info(
+                f"Dataset size before {filter} filtering: {old_size} examples, {old_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"Dataset size after {filter} filtering: {len(ds)} examples, {new_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"Percentage of volume removed {np.round((old_size_gb - new_size_gb)*100/old_size_gb, 2)}%"
+            )
+            dataset = ds
+
+        elif filter == "xml":
+            logger.info(
+                f"===== Filtering out XML files ====="
+            )
+            old_size = len(dataset)
+            old_size_gb = sum(dataset["size"])
+            t_start = time.time()
+            ds = dataset.filter(
+                filter_xml,
+                # batched=True,
+                # batch_size=args.batch_size,
+                # num_proc=args.num_workers,
             )
             logger.info(f"Filtering done in {time.time() - t_start:.2f} seconds")
             logger.info(
