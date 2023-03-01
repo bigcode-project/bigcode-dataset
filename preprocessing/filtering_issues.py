@@ -5,19 +5,15 @@ import time
 from functools import partial
 
 from datasets import load_dataset
-from datasets.utils.logging import set_verbosity_info
+from datasets.utils.logging import set_verbosity_warning
 from transformers import HfArgumentParser
 
 from arguments import FilteringArguments
 from utils.manual_sharding import save_manual_shards
-from utils.utils_issues import (
-    filter_on_users_size,
-    merge_text_columns,
-    remove_bot_comments,
-    replace_usernames,
-    strip_automated_email_text,
-    truncate_long_comments,
-)
+from utils.utils_issues import (filter_on_users_size, merge_text_columns,
+                                remove_bot_comments, replace_usernames,
+                                strip_automated_email_text,
+                                truncate_long_comments)
 
 MIN_CHARS = 200
 MAX_CHARS = 7000
@@ -115,9 +111,7 @@ def preprocess(logger, args):
     )
     size_users = len(dataset)
     size_users_gb = sum(dataset["text_size"])
-    log_stats(
-        logger, "users filter", size_no_bots, size_users, size_no_bots_gb, size_users_gb
-    )
+    log_stats(logger, "users filter", new_size, size_users, new_size_gb, size_users_gb)
 
     # replace usernames
     logger.info(f"===== Replacing usernames =====")
@@ -127,7 +121,9 @@ def preprocess(logger, args):
         f"Percentage of issues with modified usernames: {(len(modified_data) * 100) / len(dataset):.2f}%"
     )
     logger.info(
-        f"Final dataset has {size_users} samples and {size_users_gb / 1e9:.2f} GB of code"
+        f"Final dataset has {size_users} samples and {size_users_gb / 1e9:.2f} GB of code.\
+        Equivalent to removal of {100 * (old_size - size_users) / old_size:.2f}% of issues.\
+        and {100 * (old_size_gb - size_users_gb) / old_size_gb:.2f}% of text."
     )
     logger.info(f"Dataset processed in {time.time() - t_start:.2f} seconds")
     return dataset
@@ -136,7 +132,7 @@ def preprocess(logger, args):
 if __name__ == "__main__":
     args = parse_args()
 
-    set_verbosity_info()
+    set_verbosity_warning()
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
     logging.basicConfig(

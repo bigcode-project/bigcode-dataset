@@ -159,8 +159,6 @@ def remove_bot_comments(example):
                 )
                 if is_bot_call:
                     filtered_events.pop()
-                    bot_calls["calls"].append(previous_comment)
-                    nb_calls += 1
             last_removed = i
             modified = True
     example["events"] = filtered_events
