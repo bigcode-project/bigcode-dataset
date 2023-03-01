@@ -11,7 +11,7 @@ from transformers import HfArgumentParser
 from arguments import FilteringArguments
 from utils.manual_sharding import save_manual_shards
 from utils.utils_issues import (
-    filter_based_users,
+    filter_on_users_size,
     merge_text_columns,
     remove_bot_comments,
     replace_usernames,
@@ -107,7 +107,7 @@ def preprocess(logger, args):
     logger.info(f"===== Filtering issues based on users and minimal size=====")
     dataset = dataset.filter(
         partial(
-            filter_based_users,
+            filter_on_users_size,
             minimum=MIN_CHARS,
             maximum=MAX_CHARS,
             max_events=MAX_EVENTS,

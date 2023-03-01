@@ -169,7 +169,7 @@ def remove_bot_comments(example):
     return example
 
 
-def filter_based_users_size(example, minimum=200, maximum=7000, max_events=10):
+def filter_on_users_size(example, minimum=200, maximum=7000, max_events=10):
     """We filter out short files and those with only one user, except if the size
     of text in comments is between minimum and maximum characters
     and issue has less than max_events events.

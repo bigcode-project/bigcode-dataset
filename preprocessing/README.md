@@ -21,5 +21,5 @@ A log file `filtering.log` is saved in the working directory with details about 
 # Filtering GitHub Issues
 To filter GitHub conversations:
 ```bash
-python filtering_issues.py --dataset_name bigcode/subset-github-issues --subset data/ --filters basic --hub_username loubnabnl --remote_repo test_filter_github_issues
+python filtering_issues.py --dataset_name bigcode/subset-github-issues --subset data/ --hub_username loubnabnl --remote_repo test_filter_github_issues
 ```
