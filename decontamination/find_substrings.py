@@ -241,9 +241,9 @@ class SubstringFilterer(object):
                 target_dir = os.path.join(self.data_dir, lang.lower())
                 os.makedirs(target_dir, exist_ok=True)
                 subset = filtered.filter(lambda example: example[LANGUAGE_COL] == lang, num_proc=num_proc)
-                shard_dataset(subset, SHARD_SIZE, target_dir, num_proc=num_proc)    
+                shard_dataset(subset, SHARD_SIZE, target_dir, num_proc=16)
         else:
-            shard_dataset(filtered, SHARD_SIZE, self.data_dir, num_proc=num_proc)
+            shard_dataset(filtered, SHARD_SIZE, self.data_dir, num_proc=16)
     
     def run(self, dataset, num_proc, batch_size):
         filtered = self.filter_dataset(dataset, num_proc, batch_size)
