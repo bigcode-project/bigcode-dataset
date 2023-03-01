@@ -124,11 +124,14 @@ def strip_automated_email_text(example):
     return example
 
 
-def truncate_long_comments(example, max_size=7000):
-    # truncate very long comments
+def truncate_long_comments(example, max_lines=80):
+    """Truncates long comments in the middle (we keep teh last 20 lnes)"""
     for event in example["events"]:
-        if len(event["text"]) > max_size:
-            event["text"] = event["text"][:max_size]
+        lines = event["text"].split("\n")
+        nb_lines = len(lines)
+        if nb_lines > max_lines:
+            event["text"] = "\n".join(lines[: max_lines - 20]) + "\n[Truncated]\n"
+            event["text"] += "\n".join(lines[-20:])
     return example
 
 
@@ -176,7 +179,6 @@ def filter_based_users_size(example, minimum=200, maximum=7000, max_events=10):
     if example["user_count"] >= 2:
         return True
     else:
-        assert example["text_size"] >= minimum
         if example["text_size"] <= maximum and example["event_count"] <= max_events:
             return True
         return False

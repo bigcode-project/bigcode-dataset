@@ -1,4 +1,4 @@
-"""Filtering GitHub issues dataset using"""
+"""Filtering GitHub issues dataset"""
 
 import logging
 import time
@@ -10,14 +10,19 @@ from transformers import HfArgumentParser
 
 from arguments import FilteringArguments
 from utils.manual_sharding import save_manual_shards
-from utils.utils_issues import (filter_based_users, merge_text_columns,
-                                remove_bot_comments, replace_usernames,
-                                strip_automated_email_text,
-                                truncate_long_comments)
+from utils.utils_issues import (
+    filter_based_users,
+    merge_text_columns,
+    remove_bot_comments,
+    replace_usernames,
+    strip_automated_email_text,
+    truncate_long_comments,
+)
 
 MIN_CHARS = 200
 MAX_CHARS = 7000
 MAX_EVENTS = 10
+MAX_LINES = 80
 
 
 def parse_args():
@@ -51,8 +56,7 @@ def preprocess(logger, args):
         use_auth_token=True,
         num_proc=args.num_workers,
     )
-    logger.info(f"Dataset loaded in {time.time() - t_start:.2f} seconds")
-    logger.info(f"Dataset: {dataset}")
+    logger.info(f"Dataset {dataset}\nLoaded in {time.time() - t_start:.2f} seconds")
 
     # basic processing
     logger.info(f"===== Basic processing dataset=====")
@@ -72,7 +76,9 @@ def preprocess(logger, args):
 
     # truncate long comments
     logger.info(f"===== Truncating long comments =====")
-    dataset = dataset.map(truncate_long_comments, num_proc=args.num_workers).map(
+    dataset = dataset.map(
+        partial(truncate_long_comments, max_lines=MAX_LINES), num_proc=args.num_workers
+    ).map(
         lambda x: {"text_size": sum([len(event["text"]) for event in x["events"]])},
     )
     new_size_gb = sum(dataset["text_size"])
@@ -88,21 +94,17 @@ def preprocess(logger, args):
         lambda x: {"text_size": sum([len(event["text"]) for event in x["events"]])},
         num_proc=args.num_workers,
     )
-    size_no_bots = len(dataset)
-    size_no_bots_gb = sum(dataset["text_size"])
-    log_stats(
-        logger, "bots filter", old_size, size_no_bots, old_size_gb, size_no_bots_gb
-    )
+    new_size = len(dataset)
+    new_size_gb = sum(dataset["text_size"])
+    log_stats(logger, "bots filter", old_size, new_size, old_size_gb, new_size_gb)
 
-    # filter based on users
-    # add count columns
     logger.info(f"===== Adding users and events count columns =====")
     dataset = dataset.map(
         lambda x: {"user_count": len(set(event["author"] for event in x["events"]))},
         num_proc=args.num_workers,
     ).map(lambda x: {"event_count": len(x["events"])}, num_proc=args.num_workers)
 
-    logger.info(f"===== Filtering issues based on users =====")
+    logger.info(f"===== Filtering issues based on users and minimal size=====")
     dataset = dataset.filter(
         partial(
             filter_based_users,
@@ -143,14 +145,11 @@ if __name__ == "__main__":
         level=logging.INFO,
         handlers=[logging.FileHandler("filtering.log"), logging.StreamHandler()],
     )
-    logger.info(
-        f"** The job is running with the following arguments: **\n{args}\n **** "
-    )
-    logger.info("Filtering GitHub issues dataset")
+    logger.info(f"Filtering GitHub issues dataset, arguments: **\n{args}")
 
     dataset = preprocess(logger, args)
-    # Save dataset
 
+    # Save dataset
     t_start = time.time()
     if args.push_to_hub:
         logger.info(f"Pushing dataset to the Hub at {args.remote_repo}")
