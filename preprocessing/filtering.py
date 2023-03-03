@@ -20,7 +20,7 @@ from utils.manual_sharding import save_manual_shards
 from utils.text_extraction import get_nl_ratio
 
 # define list of filters to apply
-ALL_FILTERS = ["basic", "basic_per_extension", "stars", "comments", "fertility", "xml"]
+ALL_FILTERS = ["basic", "basic_per_extension", "stars", "comments", "fertility", "xml", "html"]
 THRESHOLDS_FERTILITY = {"python": 2.5, "java": 2.9, "javascript": 2.6}
 
 
@@ -198,6 +198,26 @@ def filter_tokenizer(examples):
 def filter_xml(example):
     """Filter-out XML files"""
     return not ('<?xml version=' in example['content'][:100])
+
+
+def filter_html(example):
+    """Filter HTML files based on displayed text VS code ratio"""
+    assert example["lang"] == "HTML", "Filter is only for html examples"
+    html = example["content"]
+    try:
+        soup = BeautifulSoup(html, features="html.parser")
+    except TypeError:
+        return False
+
+    # kill all script and style elements
+    for script in soup(["script", "style"]):
+        script.extract()    # rip it out
+
+    # get text
+    text = soup.get_text()
+    ratio = len(text)/len(html)
+    return ratio>0.2  and len(text)>100
+
 
 
 def get_size_text(example):
@@ -440,6 +460,35 @@ if __name__ == "__main__":
                 # batched=True,
                 # batch_size=args.batch_size,
                 # num_proc=args.num_workers,
+            )
+            logger.info(f"{filter} Filtering done in {time.time() - t_start:.2f} seconds")
+            logger.info(
+                f"{filter} Percentage of removed files: {np.round((old_size - len(ds))*100/old_size, 2)}%"
+            )
+            new_size_gb = sum(ds["size"])
+            logger.info(
+                f"Dataset size before {filter} filtering: {old_size} examples, {old_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"Dataset size after {filter} filtering: {len(ds)} examples, {new_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"{filter} Percentage of volume removed {np.round((old_size_gb - new_size_gb)*100/old_size_gb, 2)}%"
+            )
+            dataset = ds
+
+        elif filter == "html":
+            from bs4 import BeautifulSoup
+            logger.info(
+                f"===== Filtering out HTML files ====="
+            )
+            old_size = len(dataset)
+            old_size_gb = sum(dataset["size"])
+            t_start = time.time()
+
+            ds = dataset.filter(
+                filter_html,
+                num_proc=args.num_workers,
             )
             logger.info(f"{filter} Filtering done in {time.time() - t_start:.2f} seconds")
             logger.info(
