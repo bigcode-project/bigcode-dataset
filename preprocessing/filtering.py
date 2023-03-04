@@ -20,7 +20,7 @@ from utils.manual_sharding import save_manual_shards
 from utils.text_extraction import get_nl_ratio
 
 # define list of filters to apply
-ALL_FILTERS = ["basic", "basic_per_extension", "stars", "comments", "fertility", "xml", "html"]
+ALL_FILTERS = ["basic", "basic_per_extension", "stars", "comments", "fertility", "xml", "html", "large_and_small_files"]
 THRESHOLDS_FERTILITY = {"python": 2.5, "java": 2.9, "javascript": 2.6}
 
 
@@ -206,7 +206,7 @@ def filter_html(example):
     html = example["content"]
     try:
         soup = BeautifulSoup(html, features="html.parser")
-    except TypeError:
+    except (TypeError, UnboundLocalError):
         return False
 
     # kill all script and style elements
@@ -218,6 +218,9 @@ def filter_html(example):
     ratio = len(text)/len(html)
     return ratio>0.2  and len(text)>100
 
+
+def filter_large_and_small_files(example):
+    return args.min_size <= example['size'] and example['size'] <= args.max_size
 
 
 def get_size_text(example):
@@ -488,6 +491,33 @@ if __name__ == "__main__":
 
             ds = dataset.filter(
                 filter_html,
+                num_proc=args.num_workers,
+            )
+            logger.info(f"{filter} Filtering done in {time.time() - t_start:.2f} seconds")
+            logger.info(
+                f"{filter} Percentage of removed files: {np.round((old_size - len(ds))*100/old_size, 2)}%"
+            )
+            new_size_gb = sum(ds["size"])
+            logger.info(
+                f"Dataset size before {filter} filtering: {old_size} examples, {old_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"Dataset size after {filter} filtering: {len(ds)} examples, {new_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"{filter} Percentage of volume removed {np.round((old_size_gb - new_size_gb)*100/old_size_gb, 2)}%"
+            )
+            dataset = ds
+        elif filter == "large_and_small_files":
+            logger.info(
+                f"===== Filtering out large and small files ====="
+            )
+            old_size = len(dataset)
+            old_size_gb = sum(dataset["size"])
+            t_start = time.time()
+
+            ds = dataset.filter(
+                filter_large_and_small_files,
                 num_proc=args.num_workers,
             )
             logger.info(f"{filter} Filtering done in {time.time() - t_start:.2f} seconds")

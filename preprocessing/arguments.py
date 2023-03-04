@@ -45,6 +45,14 @@ class FilteringArguments:
         default=5,
         metadata={"help": "Minimum threshold for number of stars."},
     )
+    min_size: Optional[int] = field(
+        default=100,
+        metadata={"help": "Minimum content size."},
+    )
+    max_size: Optional[int] = field(
+        default=5000,
+        metadata={"help": "Maximum content size."},
+    )
     per_extension_filter_csv: Optional[str] = field(
         default=None,
         metadata={"help": "Path to csv file containing the filters to be applied depending on file extension"},
