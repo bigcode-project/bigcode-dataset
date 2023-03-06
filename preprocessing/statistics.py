@@ -13,9 +13,6 @@ import re
 import json
 
 
-# Num filters to be found in the log file.
-NUM_FILTERS = 2
-
 PER_FILTER_PATTERNS = {
     "num_files_before": r" - Dataset size before (?!any)(\S+) filtering: (\d+) examples",
     "num_files_after": r" - Dataset size after (?!any)(\S+) filtering: (\d+) examples",
@@ -34,13 +31,17 @@ OTHER_PATTERNS = {
 }
 
 
-def find_pattern(pattern, lines):
+def find_pattern(pattern, lines, num_filters: int):
+    """
+    Find multiple occurrences of `pattern` in `lines`.
+    `num_filters`: expected number of matches
+    """
     assert re.compile(pattern).groups == 2
     matches = [re.search(pattern, l) for l in lines]
     matches = [(match.group(1), match.group(2)) for match in matches if match is not None]
     # deduplicate matches (in case a job was interrupted then restarted)
     matches = list(set(matches))
-    assert len(matches) == NUM_FILTERS, f"Found {len(matches)} lines matching pattern {pattern}, expected {NUM_FILTERS}."
+    assert len(matches) == num_filters, f"Found {len(matches)} lines matching pattern {pattern}, expected {num_filters}."
     return matches
 
 
@@ -55,13 +56,15 @@ def find_single_pattern(pattern, lines):
 
 
 def get_stats(log_file: str):
+    # json/yaml were run with 3 filters. other languages with 2
+    num_filters = 3 if log_file.stem in ['json', 'yaml'] else 2
     stats = {}
 
     with open(log_file) as f:
         lines = f.readlines()
     # Get before/after stats for each filter
     for stat_name, p in PER_FILTER_PATTERNS.items():
-        for filter, stat in find_pattern(p, lines):
+        for filter, stat in find_pattern(p, lines, num_filters):
             if filter not in stats:
                 stats[filter] = {}
             stats[filter][stat_name] = stat
