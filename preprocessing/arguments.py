@@ -93,3 +93,59 @@ class FilteringArguments:
         default=False,
         metadata={"help": "Run decontamination after the filtering"},
     )
+
+@dataclass
+class ContentWithMetaArguments:
+    # add arguments in the following format
+    dataset_name: Optional[str] = field(
+        default="bigcode/the-stack-smol",
+        metadata={"help": "HF repo name/path of the dataset."},
+    )
+    subset: Optional[str] = field(
+        default="data/java",
+        metadata={"help": "Data subset."},
+    )
+    split: Optional[str] = field(
+        default="train",
+        metadata={"help": "Datasset split to process."},
+    )
+    add_repo_name_prob: float = field(
+        default=.2,
+        metadata={"help": "Probability to add repo-name"}
+    )
+    add_file_name_prob: float = field(
+        default=.2,
+        metadata={"help": "Probability to add filename"}
+    )
+    add_num_stars_prob: float = field(
+        default=.2,
+        metadata={"help": "Probability to add number of stars"}
+    )
+    num_workers: Optional[int] = field(
+        default=96,
+        metadata={"help": "Number of workers for multiprocessing."},
+    )
+    batch_size: Optional[int] = field(
+        default=1000,
+        metadata={"help": "Batch size for multiprocessing."},
+    )
+    push_to_hub: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Push the dataset to the Hub."},
+    )
+    remote_repo: Optional[str] = field(
+        default="stack-pjj-stars-filtering",
+        metadata={"help": "HF repo name of the target dataset in the hub."},
+    )
+    hub_username: Optional[str] = field(
+        default="loubnabnl",
+        metadata={"help": "Username for the hub."},
+    )
+    out_path: Optional[str] = field(
+        default=None,
+        metadata={"help": "Local path to save the ouptut dataset."},
+    )
+    log_file: Optional[str] = field(
+        default="filtering.log",
+        metadata={"help": "File to write log to."},
+    )
