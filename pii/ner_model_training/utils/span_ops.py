@@ -1,15 +1,26 @@
 from collections import defaultdict
+from typing import Tuple, Dict, Any, List
+
 from seqeval.metrics.sequence_labeling import get_entities
 import numpy as np
 
 from utils.misc import ID2LABEL, LABEL2ID
 
 
+def is_overlap(span: Tuple[int, int], reference_span: Tuple[int, int]) -> bool:
+    """
+    Check if two spans overlap or not.
 
-def is_overlap(span, reference_span):
+    Args:
+        span: A tuple containing the start and end indices of the first span.
+        reference_span: A tuple containing the start and end indices of the second span.
+
+    Returns:
+        A boolean value indicating whether the two spans overlap or not.
+    """
     l1, r1 = min(*span), max(*span)
     l2, r2 = min(*reference_span), max(*reference_span)
-    return l1<=l2<r1 or l1<r2<=r1 or l2<=l1<r2 or l2<r1<=r2
+    return l1 <= l2 < r1 or l1 < r2 <= r1 or l2 <= l1 < r2 or l2 < r1 <= r2
 
 
 def tokenize_and_label(entry, tokenizer):
@@ -18,7 +29,17 @@ def tokenize_and_label(entry, tokenizer):
     return label_tokenized(entry)
 
 
-def label_tokenized(entry, pii_column='pii'):
+def label_tokenized(entry: Dict, pii_column: str = 'pii') -> Dict:
+    """
+    Label tokenized entry with PII entities.
+
+    Args:
+        entry (Dict): A dictionary containing the tokenized input and PII entities.
+        pii_column (str): The name of the column containing PII entities in the entry dictionary. Defaults to 'pii'.
+
+    Returns:
+        dict: A dictionary containing the tokenized input and corresponding PII entity labels.
+    """
     content, pii = entry['content'], entry[pii_column]
 
     if entry['offset_mapping'][-1] == (0, 0):
@@ -36,7 +57,18 @@ def label_tokenized(entry, pii_column='pii'):
     return entry
 
 
-def convert_labels(entry):
+def convert_labels(entry: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Converts prediction logits into entity predictions and returns them as a dictionary.
+
+    Args:
+        entry (Dict[str, Any]): A dictionary containing prediction logits array `pred` for each token.
+
+    Returns:
+        Dict[str, List[Dict]]: A dictionary containing the list of predicted entities
+        and their attributes for the given text entry.
+
+    """
     pred = np.array(entry['pred'])
     pred_labels = np.argmax(pred, axis=-1)
     pred_labels = [ID2LABEL[l] for l in pred_labels]
@@ -56,7 +88,17 @@ def convert_labels(entry):
     return dict(predicted_pii=predicted_pii)
 
 
-def map_spans(new_spans, old_spans):
+def map_spans(new_spans: List[Tuple[int, int]], old_spans: List[Tuple[int, int]]) -> Dict:
+    """
+    Maps the indices of old_spans to new_spans where their indices have the same corresponding offsets.
+
+    Args:
+    new_spans (List[Tuple[int,int]]): The new list of spans to map to.
+    old_spans (List[Tuple[int,int]]): The old list of spans to map from.
+
+    Returns:
+    Dict: A mapping of the indices of each span in `new_spans` to a list of corresponding indices in `old_spans`.
+    """
     new_cursor = enumerate(span[-1] for span in new_spans)
     old_cursor = enumerate(span[-1] for span in old_spans)
 
