@@ -27,6 +27,7 @@ class PiiNERPipeline:
             window_size=512,
             window_overlap=True,
             batch_size=None,
+            num_workers=1,
             **kwargs,
     ):
         self.model = AutoModelForTokenClassification.from_pretrained(model_name_or_path, **kwargs)
@@ -40,6 +41,7 @@ class PiiNERPipeline:
             self.device = torch.device("cpu" if device < 0 else f"cuda:{device}")
 
         self.batch_size = batch_size
+        self.num_workers = num_workers
         self.window_size = window_size
         self.window_overlap = window_overlap
         self.id_to_label = self.model.config.id2label
@@ -158,7 +160,8 @@ class PiiNERPipeline:
         loader = self._get_pipeline_dataloader(inputs, self.tokenizer,
                                                batch_size=batch_size,
                                                window_size=self.window_size,
-                                               window_overlap=self.window_overlap)
+                                               window_overlap=self.window_overlap,
+                                               num_workers=self.num_workers)
 
         self.model.to(self.device)
 
