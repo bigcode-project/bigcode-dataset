@@ -6,9 +6,10 @@ from utils.span_ops import remap_logits
 
 def postprocess(pii_entry):
     start, end, old_value = pii_entry['start'], pii_entry['end'], pii_entry['value']
+    new_value = old_value.lstrip('!"\'()*+,-./:;<=>?[\\]^_`{|}~')
     if pii_entry.get('tag') != 'KEY':
-        new_value = re.sub(r'[\s\W]+$', '', old_value)
-    new_value = new_value.lstrip('!"\'()*+,-./:;<=>?[\\]^_`{|}~')
+        new_value = re.sub(r'[\s\W]+$', '', new_value)
+    new_value = new_value.strip()
 
     offset = old_value.find(new_value)
     pii_entry['start'] = start + offset

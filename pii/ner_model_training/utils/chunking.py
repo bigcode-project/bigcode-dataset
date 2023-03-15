@@ -63,22 +63,30 @@ def chunk_inputs(input_ids,
     if labels is not None:
         chunks = zip(*[_chunked_seq(seq) for seq in (input_ids, attention_mask, labels)])
         chunks = (_prepare_for_model(*chunk, tokenizer=tokenizer) for chunk in chunks)
+        return [dict(input_ids=input_ids,
+                     attention_mask=attention_mask,
+                     labels=labels,
+                     offset=i * step,
+                     id=id,
+                     chunk_id=i)
+                for i, (input_ids, attention_mask, labels) in enumerate(chunks)]
     else:
         chunks = zip(*[_chunked_seq(seq) for seq in (input_ids, attention_mask)])
         chunks = (_prepare_for_model(*chunk, labels=None, tokenizer=tokenizer) for chunk in chunks)
-
-    return [dict(input_ids=input_ids,
-                 attention_mask=attention_mask,
-                 labels=labels,
-                 step=step,
-                 id=id,
-                 chunk_id=i)
-            for i, (input_ids, attention_mask, labels) in enumerate(chunks)]
+        return [dict(input_ids=input_ids,
+                     attention_mask=attention_mask,
+                     offset=i * step,
+                     id=id,
+                     chunk_id=i)
+                for i, (input_ids, attention_mask, labels) in enumerate(chunks)]
 
 
 def _prepare_for_model(input_ids: List[int], attention_mask: List[int], labels: Optional[List[int]] = None, *,
                        tokenizer: PreTrainedTokenizer, null_label_id: int = LABEL2ID['O']):
-    input_ids = [tokenizer.cls_token_id] + list(input_ids) + [tokenizer.sep_token_id]
+    start_token_id = tokenizer.cls_token_id if tokenizer.cls_token_id is not None else tokenizer.bos_token_id
+    end_token_id = tokenizer.sep_token_id if tokenizer.sep_token_id is not None else tokenizer.eos_token_id
+
+    input_ids = [start_token_id] + list(input_ids) + [end_token_id]
     attention_mask = [1] + list(attention_mask) + [1]
     if labels is not None:
         labels = [null_label_id] + list(labels) + [null_label_id]
