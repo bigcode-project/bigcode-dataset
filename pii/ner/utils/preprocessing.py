@@ -1,5 +1,7 @@
 # source: https://github.com/mponty/bigcode-dataset/tree/main/pii/ner_model_training/utils by @mponty
-
+import itertools
+from tqdm import tqdm
+from datasets import Dataset
 
 def is_overlap(span, reference_span):
     l1, r1 = min(*span), max(*span)
@@ -17,7 +19,7 @@ def label_tokenized(
 
     entry["labels"] = [LABEL2ID["O"]] * len(entry["offset_mapping"])
     for entity in pii:
-        if entity["category"] == IGNORE_CLASS:
+        if entity["category"] in IGNORE_CLASS:
             continue
         prefix = "B-"
         entity_span = tuple(entity["position"])
