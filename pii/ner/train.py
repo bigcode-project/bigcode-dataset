@@ -57,7 +57,8 @@ def get_args():
         type=str,
         default="bigcode/pii-annotated-toloka-donwsample-emails"
     )
-    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--train_batch_size", type=int, default=4)
+    parser.add_argument("--eval_batch_size", type=int, default=1)
     parser.add_argument("--learning_rate", type=float, default=1e-5)
     parser.add_argument("--lr_scheduler_type", type=str, default="cosine")
     parser.add_argument("--num_train_epochs", type=int, default=20)
@@ -65,11 +66,12 @@ def get_args():
     parser.add_argument("--warmup_steps", type=int, default=100)
     parser.add_argument("--gradient_checkpointing", action="store_true")
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
+    parser.add_argument("--eval_accumulation_steps", type=int, default=4)
     parser.add_argument("--num_proc", type=int, default=8)
     parser.add_argument("--bf16", action="store_true")
     parser.add_argument("--fp16", action="store_true")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--num_workers", type=int, default=16)
+    parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--eval_freq", type=int, default=100)
     parser.add_argument("--save_freq", type=int, default=1000)
     parser.add_argument("--debug", action="store_true")
@@ -104,8 +106,8 @@ def run_training(args, ner_dataset, model, tokenizer):
         output_dir=args.output_dir,
         evaluation_strategy="steps",
         num_train_epochs=args.num_train_epochs,
-        per_device_train_batch_size=args.batch_size,
-        per_device_eval_batch_size=args.batch_size,
+        per_device_train_batch_size=args.train_batch_size,
+        per_device_eval_batch_size=args.eval_batch_size,
         eval_steps=args.eval_freq,
         save_steps=args.save_freq,
         logging_steps=10,
@@ -117,9 +119,10 @@ def run_training(args, ner_dataset, model, tokenizer):
         warmup_steps=args.warmup_steps,
         gradient_checkpointing=args.gradient_checkpointing,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
+        eval_accumulation_steps=args.eval_accumulation_steps,
         fp16=args.fp16,
         bf16=args.bf16,
-        run_name=f"pii-bs{args.batch_size}-lr{args.learning_rate}-wd{args.weight_decay}-epochs{args.num_train_epochs}",
+        run_name=f"pii-bs{args.train_batch_size}-lr{args.learning_rate}-wd{args.weight_decay}-epochs{args.num_train_epochs}",
         report_to="wandb",
     )
 
@@ -179,9 +182,9 @@ def main(args):
     )
 
     # split to train and test
-    data = data.train_test_split(test_size=0.2, shuffle=True, seed=args.seed)
+    data = data.train_test_split(test_size=0.1, shuffle=True, seed=args.seed)
     test_valid = data["test"].train_test_split(
-        test_size=0.6, shuffle=True, seed=args.seed
+        test_size=0.85, shuffle=True, seed=args.seed
     )
     train_data = data["train"]
     valid_data = test_valid["train"]

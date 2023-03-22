@@ -7,6 +7,30 @@ from sklearn.metrics import average_precision_score
 _seqeval_metric = load("seqeval")
 
 
+# NER tags
+CATEGORIES = [
+    "NAME",
+    "NAME_LICENSE",
+    "NAME_EXAMPLE",
+    "EMAIL",
+    "EMAIL_LICENSE",
+    "EMAIL_EXAMPLE",
+    "USERNAME",
+    "USERNAME_LICENSE",
+    "USERNAME_EXAMPLE",
+    "KEY",
+    "IP_ADDRESS",
+    "PASSWORD",
+]
+IGNORE_CLASS = ["AMBIGUOUS", "ID"]
+
+LABEL2ID = {"O": 0}
+for cat in CATEGORIES:
+    LABEL2ID[f"B-{cat}"] = len(LABEL2ID)
+    LABEL2ID[f"I-{cat}"] = len(LABEL2ID)
+ID2LABEL = {v: k for k, v in LABEL2ID.items()}
+
+
 def compute_ap(pred, truth):
     pred_proba = 1 - softmax(pred, axis=-1)[..., 0]
     pred_proba, truth = pred_proba.flatten(), np.array(truth).flatten()
@@ -18,6 +42,8 @@ def compute_ap(pred, truth):
 
 def compute_metrics(p):
     predictions, labels = p
+    print(f"predictions.shape: {predictions.shape} and type {type(predictions)}")
+    print(f"labels.shape: {labels.shape} and type {type(labels)}")
     avg_prec = compute_ap(predictions, labels)
     predictions = np.argmax(predictions, axis=2)
 
