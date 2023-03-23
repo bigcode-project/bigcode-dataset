@@ -5,3 +5,5 @@ datasets
 detect_secrets
 gibberish_detector
 huggingface_hub
+nltk
+scikit-learn

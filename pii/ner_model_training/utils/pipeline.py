@@ -3,6 +3,7 @@ from collections import UserDict
 from dataclasses import dataclass
 from typing import Dict, List, Any, Iterable
 
+from tqdm import tqdm
 import torch
 from packaging import version
 import numpy as np
@@ -191,7 +192,7 @@ class PiiNERPipeline:
             yield group
 
     def process_inputs(self, loader):
-        for batch in loader:
+        for batch in tqdm(loader):
             outputs = self.forward(batch)
             for sample in uncollate(outputs):
                 yield sample
