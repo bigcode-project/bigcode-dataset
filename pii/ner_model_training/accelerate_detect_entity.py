@@ -1,13 +1,15 @@
+import os
 from dataclasses import dataclass, field
 from tqdm import tqdm
+
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader
-import datasets 
-from datasets import load_dataset
-from accelerate import Accelerator, DistributedType
-from transformers import BertTokenizer, BertForTokenClassification, HfArgumentParser
-from transformers import is_torch_available, AutoModelForTokenClassification, AutoTokenizer, \
-    DataCollatorForTokenClassification
+import datasets
+from datasets import load_dataset, Dataset
+from accelerate import Accelerator
+from transformers import HfArgumentParser
+from transformers import AutoModelForTokenClassification, AutoTokenizer
 
 from utils import PiiNERPipeline
 
@@ -35,10 +37,10 @@ class NerArguments:
             "help": "Name of dataset to use for inference"
         }
     )
-    output_path: str = field(
+    out_path: str = field(
         default="processed_dataset",
         metadata={
-            "help": "Path to save output entities"
+            "help": "dir to save output dataset"
         }
     )
 
@@ -51,25 +53,32 @@ def main():
     args = parser.parse_args()
 
     accelerator = Accelerator()
+    if accelerator.is_main_process:
+        out_dir = f"{args.out_path}"
+        if not os.path.exists(out_dir):
+            os.mkdir(out_dir)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dataset = load_dataset(args.dataset_name, use_auth_token=True, split="train")
-    model = AutoModelForTokenClassification.from_pretrained(args.model_name, use_auth_token=True)
+    model = AutoModelForTokenClassification.from_pretrained(args.model_name, use_auth_token=True).to(device)
+    id_to_label = model.config.id2label
     tokenizer = AutoTokenizer.from_pretrained(args.model_name, use_auth_token=True)
-    dataloader = DataLoader(dataset, batch_size=args.job_batch_size, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=args.job_batch_size, shuffle=False, num_workers=4)
     model, dataloader = accelerator.prepare(model, dataloader)
     pipeline = PiiNERPipeline(
         model,
         tokenizer=tokenizer,
         batch_size=64,
         window_size=512,
-        device=device,
+        device=accelerator.local_process_index if torch.cuda.is_available() else device,
         num_workers=1,
-        use_auth_token=True
+        use_auth_token=True,
+        id_to_label=id_to_label
     )
     for batch in tqdm(dataloader):
         iterator = pipeline(datasets.Dataset.from_dict(batch))
-        processed_dataset_job = list(iterator)
-
+        result_iterator = list(iterator)
+        processed_dataset = Dataset.from_dict(pd.DataFrame(list(result_iterator)))
+        processed_dataset.to_parquet(f"{args.out_path}/job_{accelerator.process_index}_{i}.parquet")
 
 if __name__ == "__main__":
     main()

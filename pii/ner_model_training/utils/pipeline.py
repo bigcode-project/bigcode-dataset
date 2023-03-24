@@ -29,6 +29,7 @@ class PiiNERPipeline:
             window_overlap=True,
             batch_size=None,
             num_workers=1,
+            id_to_label=None,
             **kwargs,
     ):
         if isinstance(model_name_or_path, str):
@@ -49,7 +50,10 @@ class PiiNERPipeline:
         self.num_workers = num_workers
         self.window_size = window_size
         self.window_overlap = window_overlap
-        self.id_to_label = self.model.config.id2label
+        if id_to_label is None:
+            self.id_to_label = self.model.config.id2label
+        else:
+            self.id_to_label = id_to_label
 
     def __call__(self, inputs: Dataset, **kwargs):
         dataset_iterator = inputs.to_iterable_dataset()
