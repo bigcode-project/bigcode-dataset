@@ -28,12 +28,17 @@ class PiiNERPipeline:
             window_overlap=True,
             batch_size=None,
             num_workers=1,
+            id_to_label=None,
             **kwargs,
     ):
-        self.model = AutoModelForTokenClassification.from_pretrained(model_name_or_path, **kwargs)
-        if tokenizer is None:
-            tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, add_prefix_space=True, **kwargs)
-        self.tokenizer = tokenizer
+        if isinstance(model_name_or_path, str):
+            self.model = AutoModelForTokenClassification.from_pretrained(model_name_or_path, **kwargs)
+            if tokenizer is None:
+                tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, add_prefix_space=True, **kwargs)
+            self.tokenizer = tokenizer
+        else:
+            self.model = model_name_or_path
+            self.tokenizer = tokenizer
 
         if is_torch_available() and isinstance(device, torch.device):
             self.device = device
@@ -44,7 +49,10 @@ class PiiNERPipeline:
         self.num_workers = num_workers
         self.window_size = window_size
         self.window_overlap = window_overlap
-        self.id_to_label = self.model.config.id2label
+        if id_to_label is None:
+            self.id_to_label = self.model.config.id2label
+        else:
+            self.id_to_label = id_to_label
 
     def __call__(self, inputs: Dataset, **kwargs):
         dataset_iterator = inputs.to_iterable_dataset()
@@ -54,7 +62,8 @@ class PiiNERPipeline:
 
     @contextmanager
     def device_placement(self):
-        torch.cuda.set_device(self.device)
+        if torch.cuda.is_available():
+            torch.cuda.set_device(self.device)
         yield
 
     def ensure_tensor_on_device(self, **inputs):
