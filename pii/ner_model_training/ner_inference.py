@@ -31,7 +31,6 @@ class NerArguments:
             "help": "the batch size to dispatch to each job"
         }
     )
-
     dataset_name: str = field(
         default='bigcode/pii-for-code-v2',
         metadata={
