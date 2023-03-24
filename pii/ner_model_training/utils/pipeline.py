@@ -110,9 +110,10 @@ class PiiNERPipeline:
         with self.device_placement():
             inference_context = self.get_inference_context()
             with inference_context():
-                model_inputs = self._ensure_tensor_on_device(model_inputs, device=self.device)
+                model_inputs["input_ids"] = model_inputs["input_ids"].to(self.device)
+                model_inputs["attention_mask"] = model_inputs["attention_mask"].to(self.device)
                 model_outputs = self._forward(model_inputs, **forward_params)
-                model_outputs = self._ensure_tensor_on_device(model_outputs, device=torch.device("cpu"))
+                model_outputs["logits"] = model_outputs["logits"].to("cpu")
                 model_outputs = {name: tensor.numpy() if isinstance(tensor, torch.Tensor) else tensor
                                  for name, tensor in model_outputs.items()}
 
