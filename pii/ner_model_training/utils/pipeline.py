@@ -113,8 +113,7 @@ class PiiNERPipeline:
                 model_inputs["input_ids"] = model_inputs["input_ids"].to(self.device)
                 model_inputs["attention_mask"] = model_inputs["attention_mask"].to(self.device)
                 model_outputs = self._forward(model_inputs, **forward_params)
-                model_outputs["logits"] = model_outputs["logits"].to("cpu")
-                model_outputs = {name: tensor.numpy() if isinstance(tensor, torch.Tensor) else tensor
+                model_outputs = {name: tensor.detach().to("cpu").numpy() if isinstance(tensor, torch.Tensor) else tensor
                                  for name, tensor in model_outputs.items()}
 
         return model_outputs
