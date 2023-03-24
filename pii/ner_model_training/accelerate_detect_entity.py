@@ -74,7 +74,7 @@ def main():
         use_auth_token=True,
         id_to_label=id_to_label
     )
-    for batch in tqdm(dataloader):
+    for i, batch in tqdm(enumerate(dataloader)):
         iterator = pipeline(datasets.Dataset.from_dict(batch))
         result_iterator = list(iterator)
         processed_dataset = Dataset.from_dict(pd.DataFrame(list(result_iterator)))
