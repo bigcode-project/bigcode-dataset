@@ -55,7 +55,8 @@ class PiiNERPipeline:
 
     @contextmanager
     def device_placement(self):
-        torch.cuda.set_device(self.device)
+        if torch.cuda.is_available():
+            torch.cuda.set_device(self.device)
         yield
 
     def ensure_tensor_on_device(self, **inputs):

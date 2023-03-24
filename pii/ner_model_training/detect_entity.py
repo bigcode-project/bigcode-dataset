@@ -5,6 +5,7 @@ import pandas as pd
 from transformers import BertTokenizer, BertForTokenClassification, HfArgumentParser
 from datasets import load_dataset
 from datasets import Dataset
+import torch
 
 from utils import PiiNERPipeline
 
@@ -60,11 +61,11 @@ def main():
     parser = HfArgumentParser(NerArguments)
     args = parser.parse_args()
     N_DEVICES = 4
-
+    device = torch.device(args.job_id if torch.cuda.is_available() else "cpu")
     pipeline = PiiNERPipeline(args.model_name,
                             batch_size=args.batch_size,
                             window_size=512,
-                            device=args.job_id,
+                            device=device,
                             num_workers=1,
                             use_auth_token=True)
     dataset = load_dataset(args.dataset_name, use_auth_token=True)['train']
