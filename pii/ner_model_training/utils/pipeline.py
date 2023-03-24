@@ -31,10 +31,14 @@ class PiiNERPipeline:
             num_workers=1,
             **kwargs,
     ):
-        self.model = AutoModelForTokenClassification.from_pretrained(model_name_or_path, **kwargs)
-        if tokenizer is None:
-            tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, add_prefix_space=True, **kwargs)
-        self.tokenizer = tokenizer
+        if isinstance(model_name_or_path, str):
+            self.model = AutoModelForTokenClassification.from_pretrained(model_name_or_path, **kwargs)
+            if tokenizer is None:
+                tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, add_prefix_space=True, **kwargs)
+            self.tokenizer = tokenizer
+        else:
+            self.model = model_name_or_path
+            self.tokenizer = tokenizer
 
         if is_torch_available() and isinstance(device, torch.device):
             self.device = device
