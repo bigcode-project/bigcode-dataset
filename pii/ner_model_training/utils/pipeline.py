@@ -29,8 +29,11 @@ class PiiNERPipeline:
             batch_size=None,
             num_workers=1,
             id_to_label=None,
+            fp16=False,
+            bf16=False,
             **kwargs,
     ):
+        assert not (fp16 and bf16), 'I only can be fp16 or bf16!'
         if isinstance(model_name_or_path, str):
             self.model = AutoModelForTokenClassification.from_pretrained(model_name_or_path, **kwargs)
             if tokenizer is None:
@@ -49,6 +52,8 @@ class PiiNERPipeline:
         self.num_workers = num_workers
         self.window_size = window_size
         self.window_overlap = window_overlap
+        self.fp16 = fp16
+        self.bf16 = bf16
         if id_to_label is None:
             self.id_to_label = self.model.config.id2label
         else:
@@ -172,7 +177,13 @@ class PiiNERPipeline:
                                                window_overlap=self.window_overlap,
                                                num_workers=self.num_workers)
 
-        self.model.to(self.device)
+        # TODO: batch_norms and layer_norm should be fp32
+        if self.fp16:
+            self.model = self.model.to(dtype=torch.float16, device=self.device)
+        elif self.bf16:
+            self.model = self.model.to(dtype=torch.bfloat16, device=self.device)
+        else:
+            self.model = self.model.to(self.device)
 
         processing_iterator = self.process_inputs(loader)
         for processed in self.combine_chunked_inputs(processing_iterator):
