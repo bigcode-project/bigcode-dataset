@@ -29,19 +29,14 @@ CLS_TOKEN = "<cls>"
 # NER tags
 CATEGORIES = [
     "NAME",
-    "NAME_LICENSE",
-    "NAME_EXAMPLE",
     "EMAIL",
-    "EMAIL_LICENSE",
     "EMAIL_EXAMPLE",
     "USERNAME",
-    "USERNAME_LICENSE",
-    "USERNAME_EXAMPLE",
     "KEY",
     "IP_ADDRESS",
     "PASSWORD",
 ]
-IGNORE_CLASS = ["AMBIGUOUS", "ID"]
+IGNORE_CLASS = ["AMBIGUOUS", "ID", "NAME_EXAMPLE", "USERNAME_EXAMPLE"]
 
 LABEL2ID = {"O": 0}
 for cat in CATEGORIES:
@@ -55,21 +50,28 @@ def get_args():
     parser.add_argument(
         "--dataset_name",
         type=str,
-        default="bigcode/pii-annotated-toloka-donwsample-emails"
+        default="bigcode/pii-full-ds"
     )
+    # addprefix to wandb run
+    parser.add_argument("--prefix", type=str, default="")
+    parser.add_argument("--add_not_curated", action="store_true")
     parser.add_argument("--train_batch_size", type=int, default=4)
-    parser.add_argument("--eval_batch_size", type=int, default=1)
+    parser.add_argument("--eval_batch_size", type=int, default=4)
+    parser.add_argument("--num_train_epochs", type=int, default=100)
+
     parser.add_argument("--learning_rate", type=float, default=1e-5)
     parser.add_argument("--lr_scheduler_type", type=str, default="cosine")
-    parser.add_argument("--num_train_epochs", type=int, default=20)
     parser.add_argument("--weight_decay", type=float, default=0.01)
     parser.add_argument("--warmup_steps", type=int, default=100)
+
     parser.add_argument("--gradient_checkpointing", action="store_true")
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
-    parser.add_argument("--eval_accumulation_steps", type=int, default=4)
+    parser.add_argument("--eval_accumulation_steps", type=int, default=1)
     parser.add_argument("--num_proc", type=int, default=8)
     parser.add_argument("--bf16", action="store_true")
     parser.add_argument("--fp16", action="store_true")
+
+    parser.add_argument("--local_rank", type=int, default=0)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--eval_freq", type=int, default=100)
@@ -99,6 +101,23 @@ def prepare_tokenizer(tokenizer):
     return tokenizer
 
 
+def prepare_dataset(dataset, tokenizer, args):
+    # tokenize and label
+    dataset = dataset.map(
+            partial(
+                tokenize_and_label_batch,
+                tokenizer=tokenizer,
+                target_text="text",
+                pii_column="fragments",
+                LABEL2ID=LABEL2ID,
+                IGNORE_CLASS=IGNORE_CLASS,
+            ),
+            batched=True,
+            batch_size=1000,
+            num_proc=args.num_workers,
+        )
+    return dataset
+
 def run_training(args, ner_dataset, model, tokenizer):
     print(f"Initializing Trainer...")
 
@@ -122,7 +141,7 @@ def run_training(args, ner_dataset, model, tokenizer):
         eval_accumulation_steps=args.eval_accumulation_steps,
         fp16=args.fp16,
         bf16=args.bf16,
-        run_name=f"pii-bs{args.train_batch_size}-lr{args.learning_rate}-wd{args.weight_decay}-epochs{args.num_train_epochs}",
+        run_name=f"{args.prefix}-bs{args.train_batch_size}-lr{args.learning_rate}-wd{args.weight_decay}-ep{args.num_train_epochs}",
         report_to="wandb",
     )
 
@@ -138,7 +157,7 @@ def run_training(args, ner_dataset, model, tokenizer):
         compute_metrics=compute_metrics,
         callbacks=[
             EarlyStoppingCallback(
-                early_stopping_patience=30, early_stopping_threshold=1e-3
+                early_stopping_patience=20, early_stopping_threshold=1e-2
             )
         ],
     )
@@ -148,6 +167,10 @@ def run_training(args, ner_dataset, model, tokenizer):
 
     print("Saving last checkpoint of the model")
     model.save_pretrained(os.path.join(args.output_dir, "final_checkpoint/"))
+
+    # evaluate on test set
+    #print("Evaluating on test set...")
+    #trainer.evaluate(ner_dataset["test"])
 
 
 def main(args):
@@ -159,43 +182,39 @@ def main(args):
         label2id=LABEL2ID,
         use_auth_token=True,
         use_cache=not args.gradient_checkpointing,
+        output_hidden_states = False,
     )
     tokenizer = AutoTokenizer.from_pretrained(args.model_ckpt, use_auth_token=True)
     tokenizer = prepare_tokenizer(tokenizer)
 
     # load dataset
-    dataset = load_dataset(args.dataset_name, use_auth_token=True, split="train")
-    dataset = dataset.remove_columns(["id"])
-    dataset = dataset.add_column("id", range(len(dataset)))
-    data = dataset.map(
-        partial(
-            tokenize_and_label_batch,
-            tokenizer=tokenizer,
-            target_text="text",
-            pii_column="fragments",
-            LABEL2ID=LABEL2ID,
-            IGNORE_CLASS=IGNORE_CLASS,
-        ),
-        batched=True,
-        batch_size=1000,
-        num_proc=args.num_workers,
-    )
+    dataset = load_dataset(args.dataset_name, use_auth_token=True)
+    train_data = dataset["train"].shuffle(seed=args.seed)
+    test_data = dataset["test"]
+    valid_data = dataset["valid"]
 
-    # split to train and test
-    data = data.train_test_split(test_size=0.1, shuffle=True, seed=args.seed)
-    test_valid = data["test"].train_test_split(
-        test_size=0.85, shuffle=True, seed=args.seed
+    from datasets import concatenate_datasets
+    train_data = concatenate_datasets([train_data, test_data])
+    print(f"Concatenated train and test data, new train size: {len(train_data)}")
+
+
+    if args.dataset_name == "bigcode/pii-full-ds":
+        if not args.add_not_curated:
+            print("Removing not curated data (-400 long files)...")
+            # keep only curated data
+            train_data = train_data.filter(lambda x: x["data_origin"] == "curated") 
+        else:
+            print("Keeping not curated data...")
+
+
+    train_data = prepare_dataset(train_data, tokenizer, args)
+    test_data = prepare_dataset(test_data, tokenizer, args)
+    valid_data = prepare_dataset(valid_data, tokenizer, args)
+    print(
+        f"After tokenization:\nTrain size {len(train_data)}\nValid size {len(valid_data)}\nTest size {len(test_data)}"
     )
-    train_data = data["train"]
-    valid_data = test_valid["train"]
-    test_data = test_valid["test"]
-    test_data.to_json(f"{args.output_dir}/test_data.json")
-    print("Test data saved to test_data.json")
 
     if args.debug:
-        print(
-            f"Train size {len(train_data)}\nValid size {len(valid_data)}\nTest size {len(test_data)}"
-        )
         train_stats = get_stats(train_data)
         valid_stats = get_stats(valid_data)
         test_stats = get_stats(test_data)
@@ -207,12 +226,15 @@ def main(args):
         print("Test low-resource stats")
         pprint({k: v for k, v in test_stats.items() if v < 100})
 
+
     print("Chunking the dataset...")
     ner_dataset = DatasetDict(
         train=chunk_dataset(train_data, tokenizer),
         validation=chunk_dataset(valid_data, tokenizer),
         test=chunk_dataset(test_data, tokenizer),
     )
+    # remove columns
+    ner_dataset = ner_dataset.remove_columns(["id", "chunk_id"])
     print(ner_dataset)
 
     run_training(args, ner_dataset, model, tokenizer)
@@ -223,6 +245,6 @@ if __name__ == "__main__":
     set_seed(args.seed)
     os.makedirs(args.output_dir, exist_ok=True)
 
-    logging.set_verbosity_error()
+    logging.set_verbosity_info()
 
     main(args)

@@ -10,19 +10,14 @@ _seqeval_metric = load("seqeval")
 # NER tags
 CATEGORIES = [
     "NAME",
-    "NAME_LICENSE",
-    "NAME_EXAMPLE",
     "EMAIL",
-    "EMAIL_LICENSE",
     "EMAIL_EXAMPLE",
     "USERNAME",
-    "USERNAME_LICENSE",
-    "USERNAME_EXAMPLE",
     "KEY",
     "IP_ADDRESS",
     "PASSWORD",
 ]
-IGNORE_CLASS = ["AMBIGUOUS", "ID"]
+IGNORE_CLASS = ["AMBIGUOUS", "ID", "NAME_EXAMPLE", "USERNAME_EXAMPLE"]
 
 LABEL2ID = {"O": 0}
 for cat in CATEGORIES:
@@ -42,8 +37,6 @@ def compute_ap(pred, truth):
 
 def compute_metrics(p):
     predictions, labels = p
-    print(f"predictions.shape: {predictions.shape} and type {type(predictions)}")
-    print(f"labels.shape: {labels.shape} and type {type(labels)}")
     avg_prec = compute_ap(predictions, labels)
     predictions = np.argmax(predictions, axis=2)
 
@@ -58,7 +51,7 @@ def compute_metrics(p):
     ]
 
     results = _seqeval_metric.compute(
-        predictions=true_predictions, references=true_labels
+        predictions=true_predictions, references=true_labels, zero_division=0,
     )
     agg_metrics = {
         "Avg.Precision": avg_prec,
