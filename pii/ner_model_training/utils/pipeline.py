@@ -54,6 +54,9 @@ class PiiNERPipeline:
         self.window_overlap = window_overlap
         self.fp16 = fp16
         self.bf16 = bf16
+        
+        self.model = self.model.to(self.device)
+        
         if id_to_label is None:
             self.id_to_label = self.model.config.id2label
         else:
@@ -111,23 +114,33 @@ class PiiNERPipeline:
         )
         return inference_context
 
+    def mixed_precision_context(self):
+        if self.fp16:
+            return torch.autocast(dtype=torch.float16)
+        elif self.bf16:
+            return torch.autocast(dtype=torch.bfloat16)
+        else:
+            return torch.autocast(enabled=False)
+
     def forward(self, model_inputs, **forward_params):
         with self.device_placement():
             inference_context = self.get_inference_context()
             with inference_context():
-                model_inputs["input_ids"] = model_inputs["input_ids"].to(self.device)
-                model_inputs["attention_mask"] = model_inputs["attention_mask"].to(self.device)
-                model_outputs = self._forward(model_inputs, **forward_params)
-                model_outputs = {name: tensor.detach().to("cpu").numpy() if isinstance(tensor, torch.Tensor) else tensor
-                                 for name, tensor in model_outputs.items()}
+                with self.mixed_precision_context():
+                    model_inputs["input_ids"] = model_inputs["input_ids"].to(self.device)
+                    model_inputs["attention_mask"] = model_inputs["attention_mask"].to(self.device)
+                    model_outputs = self._forward(model_inputs, **forward_params)
+                    model_outputs = {name: tensor.detach().to("cpu").numpy() if isinstance(tensor, torch.Tensor) else tensor
+                                     for name, tensor in model_outputs.items()}
 
         return model_outputs
 
     def _forward(self, model_inputs, **forward_params):
         # Forward
         input_ids = model_inputs.pop('input_ids')
+        attention_mask = model_inputs.pop('attention_mask')
         logits = self.model(input_ids=input_ids,
-                            attention_mask=model_inputs['attention_mask'],
+                            attention_mask=attention_mask,
                             return_dict=True,
                             **forward_params)['logits']
 
@@ -177,29 +190,17 @@ class PiiNERPipeline:
                                                window_overlap=self.window_overlap,
                                                num_workers=self.num_workers)
 
-        # TODO: batch_norms and layer_norm should be fp32
-        if self.fp16:
-            self.model = self.model.to(dtype=torch.float16, device=self.device)
-        elif self.bf16:
-            self.model = self.model.to(dtype=torch.bfloat16, device=self.device)
-        else:
-            self.model = self.model.to(self.device)
+
 
         processing_iterator = self.process_inputs(loader)
         for processed in self.combine_chunked_inputs(processing_iterator):
             yield self.extract_entities(text=processed['text'],
                                         logits=processed['logits'],
                                         offset_mapping=processed['offset_mapping'])
-        self.model.to('cpu')
 
     def combine_chunked_inputs(self, processing_iterator):
         for group in self.group_processed_chunks(processing_iterator):
             group['logits'] = self.combine_chunks(group['logits'], group['offset'], agg='average')
-            # group['input_ids'] = self.combine_chunks(group['input_ids'], group['offset'],
-            #                                          fill_value=self.tokenizer.pad_token_id)
-            #
-            # mask = group['input_ids'] != self.tokenizer.pad_token_id
-            # group['logits'], group['input_ids'] = group['logits'][mask], group['input_ids'][mask]
             yield group
 
     @staticmethod
