@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from collections import UserDict
 from dataclasses import dataclass
 from typing import Dict, List, Any, Iterable
+import contextlib
 
 import torch
 from packaging import version
@@ -116,11 +117,11 @@ class PiiNERPipeline:
 
     def mixed_precision_context(self):
         if self.fp16:
-            return torch.autocast(dtype=torch.float16)
+            return torch.autocast("cuda", dtype=torch.float16)
         elif self.bf16:
-            return torch.autocast(dtype=torch.bfloat16)
+            return torch.autocast("cuda", dtype=torch.bfloat16)
         else:
-            return torch.autocast(enabled=False)
+            return contextlib.nullcontext()
 
     def forward(self, model_inputs, **forward_params):
         with self.device_placement():
