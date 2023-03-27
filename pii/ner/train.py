@@ -141,7 +141,7 @@ def run_training(args, ner_dataset, model, tokenizer):
         eval_accumulation_steps=args.eval_accumulation_steps,
         fp16=args.fp16,
         bf16=args.bf16,
-        run_name=f"{args.prefix}-bs{args.train_batch_size}-lr{args.learning_rate}-wd{args.weight_decay}-ep{args.num_train_epochs}",
+        run_name=f"{args.prefix}-bs{args.train_batch_size}-lr{args.learning_rate}-wd{args.weight_decay}-ep{args.num_train_epochs}-last",
         report_to="wandb",
     )
 
@@ -157,26 +157,27 @@ def run_training(args, ner_dataset, model, tokenizer):
         compute_metrics=compute_metrics,
         callbacks=[
             EarlyStoppingCallback(
-                early_stopping_patience=20, early_stopping_threshold=1e-2
+                early_stopping_patience=15, early_stopping_threshold=1e-2
             )
         ],
     )
 
     print("Training...")
-    trainer.train()
+    #trainer.train()
 
     print("Saving last checkpoint of the model")
-    model.save_pretrained(os.path.join(args.output_dir, "final_checkpoint/"))
+    #model.save_pretrained(os.path.join(args.output_dir, "final_checkpoint_last_exp/"))
 
     # evaluate on test set
-    #print("Evaluating on test set...")
-    #trainer.evaluate(ner_dataset["test"])
+    print("Evaluating on test set...")
+    trainer.evaluate(ner_dataset["validation"])
 
 
 def main(args):
     # load model and tokenizer
     model = AutoModelForTokenClassification.from_pretrained(
-        args.model_ckpt,
+        #args.model_ckpt,
+        "/fsx/loubna/code/bigcode-dataset/pii/ner/finetuned-encoder-pii/final_checkpoint-all-noexamples",
         num_labels=len(ID2LABEL),
         id2label=ID2LABEL,
         label2id=LABEL2ID,
