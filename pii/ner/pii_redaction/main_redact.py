@@ -31,12 +31,6 @@ def parseArgs():
         help="Number of processes to use for loading the dataset",
     )
     parser.add_argument(
-        "--lang",
-        default="ada",
-        type=str,
-        help="Language to redact PII in.",
-    )
-    parser.add_argument(
         "--text_column",
         default="content",
         type=str,
@@ -78,7 +72,7 @@ def parseArgs():
     )
     parser.add_argument(
         "--add_reference_text",
-        default=False,
+        default=True,
         type=bool,
         help="If True we add the reference text with PII between delimiters \
         in the redacted text -used for visualization-",
@@ -162,15 +156,15 @@ def check_uniques(example, uniques):
 
 def main():
     set_verbosity_info()
+    args = parseArgs()
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO,
-        handlers=[logging.FileHandler("pii.log"), logging.StreamHandler()],
+        handlers=[logging.FileHandler(f"logs/pii-{args.dataset_name.split('/')[-1]}.log"), logging.StreamHandler()],
     )
-    args = parseArgs()
     logger.info(
         f"** The job is running with the following arguments: **\n{args}\n **** "
     )
@@ -193,9 +187,7 @@ def main():
     logger.info(f"Dataset:\n{ds}")
     # Deduplicate data and apply heuristics
     t_start = time.time()
-    ds_pii = ds.filter(
-        check_uniques, fn_kwargs={"uniques": uniques}, num_proc=args.num_proc
-    )
+    ds_pii = ds.filter(check_uniques, fn_kwargs={"uniques": uniques})
     logger.info(f"Time to filter dataset: {time.time()-t_start:.2f}")
     logger.info(f"Dataset after dedup:\n{ds_pii}")
 
