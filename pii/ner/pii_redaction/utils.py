@@ -1,6 +1,6 @@
 import ipaddress
-import json
 import random
+from gibberish_detector import detector
 
 IGNORE = ["AMBIGUOUS", "USERNAME"]
 # List of random private IP addresses to use as replacements
@@ -40,14 +40,29 @@ POPULAR_DNS_SERVERS = [
 ]
 
 
-def load_json(sample):
-    try:
-        return json.loads(sample)
-    except ValueError:
-        return []
+def is_key(matched_str):
+    """Checks to make sure the PII span is long enough and is gibberish and not word like"""
+    # pip install gibberish-detector
+    # download the training corpora from https://raw.githubusercontent.com/domanchi/gibberish-detector/master/examples/big.txt
+    # run gibberish-detector train big.txt > big.model to generate the model (it takes 3 seconds)
+    Detector = detector.create_from_model(
+        "/fsx/loubna/code/bigcode-dataset/pii/gibberish_data/big.model"
+    )
+    is_gibberish = Detector.is_gibberish(matched_str.lower())
+    return is_gibberish and len(matched_str) > 8
 
 
-def get_replacements(n=10):
+def is_secret(matched_str):
+    """Checks to make sure the PII span is long enough"""
+    return len(matched_str) > 3
+
+
+def is_full_name(matched_str):
+    """Checks if detected name is a full names and not just first or last name"""
+    return len(matched_str.split()) > 1
+
+
+def get_replacements():
     """Build dictionaries of replacements for PII (key, email, IP address, name, password)"""
     ip_addresses = REPLACEMENTS_IP
     return {
@@ -74,7 +89,7 @@ def replace_ip(value, replacements_dict):
             return value
 
 
-def is_private_ip(ip):
+def is_secret_ip(ip):
     """Check if an IP address is allocated for private networks (non internet facing), or is not an ip address at all"""
     try:
         ip = ipaddress.ip_address(ip)
@@ -105,14 +120,18 @@ def redact_pii_text(text, secrets, replacements, add_references=False):
         step = 0
         last_text = text
         for secret in secrets:
-            if secret["tag"] in IGNORE:
+            if secret["tag"] in IGNORE or not is_secret(secret["value"]):
                 continue
             if secret["tag"] == "IP_ADDRESS":
-                # skip secret if it is not actual ip address, is apopular DNS server or private IP address
-                if is_private_ip(secret["value"]) or (
+                # skip if it's not actual ip address, is a popular DNS server or private IP address
+                if is_secret_ip(secret["value"]) or (
                     secret["value"] in POPULAR_DNS_SERVERS
                 ):
                     continue
+            if secret["tag"] == "KEY" and not is_key(secret["value"]):
+                continue
+            if secret["tag"] == "NAME" and not is_full_name(secret["value"]):
+                continue
             modified = True
             subtext = text[step : secret["start"]]
             subpart = subtext if subtext else " "
