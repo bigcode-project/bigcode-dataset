@@ -120,6 +120,7 @@ def redact_pii_text(text, secrets, replacements, add_references=False):
         step = 0
         last_text = text
         for secret in secrets:
+            # some post-processing 
             if secret["tag"] in IGNORE or not is_secret(secret["value"]):
                 continue
             if secret["tag"] == "IP_ADDRESS":

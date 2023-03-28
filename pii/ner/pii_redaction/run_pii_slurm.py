@@ -193,14 +193,13 @@ if __name__ == "__main__":
         "cmake",
     ]
     for i in range(args.start, args.end + 1):
-        #language = languages[i]
-        language="github-issues-filtered-structured"
+        language = languages[i]
         print(f"Submitting jobs for experiment on language {language}")
         job_name = f"{language}-pii-redaction-idx_{i}"
         job = makejob(
             JOB_NAME=job_name,
             LANG=language,
-            TEXT_COL=args.text_column,
+            TEXT_COLUMN=args.text_column,
         )
         # submit the job
         print(f"Job for lang {language} ready and saved at jobs/{job_name}.sbatch")
