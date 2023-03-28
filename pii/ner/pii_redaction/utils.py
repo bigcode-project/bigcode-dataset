@@ -46,7 +46,7 @@ def is_key(matched_str):
     # download the training corpora from https://raw.githubusercontent.com/domanchi/gibberish-detector/master/examples/big.txt
     # run gibberish-detector train big.txt > big.model to generate the model (it takes 3 seconds)
     Detector = detector.create_from_model(
-        "/fsx/loubna/code/bigcode-dataset/pii/gibberish_data/big.model"
+        "/bigcode-dataset/pii/gibberish_data/big.model"
     )
     is_gibberish = Detector.is_gibberish(matched_str.lower())
     return is_gibberish and len(matched_str) > 8
