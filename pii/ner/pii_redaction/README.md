@@ -1,13 +1,12 @@
 # PII redaction
-
+To run PII redaction on a dataset that went though PII detection with this [NER model](https://huggingface.co/bigcode/bigcode-encoder-pii-ner-v2).
 ```bash
-LANG=jupyter-scripts-dedup-filtered
-python main_redact.py --dataset_name  /fsx/leandro/data/pii_result/$LANG --target_dataset $LANG-no-pii --save_path_disk $LANG-no-pii-local
+LANG=python
+python main_redact.py --dataset_name  $DATA_PATH --target_dataset $LANG-no-pii --save_path_disk $LANG-no-pii-local
 ```
-/fsx/leandro/data/pii_result/jupyter-scripts-dedup-filtered
-/fsx/leandro/data/pii_result/jupyter-structured-clean-dedup
-/fsx/leandro/data/pii_result/github-issues-filtered-structured
+
+To run multiple `slurm` jobs for each programming language
 
 ```bash
-python main_redact.py --dataset_name  /fsx/leandro/data/pii_result/$LANG --target_dataset $LANG-no-pii --save_path_disk $LANG-no-pii-local
+python run_pii_slurm.py --start 0 --end 88
 ```
