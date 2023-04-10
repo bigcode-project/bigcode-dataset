@@ -52,17 +52,31 @@ ip_pattern = (
     + r"|".join([ipv4_pattern, ipv6_pattern])
     + ")(?:$|[\s@,?!;:'\"(.\p{Han}])"
 )
+
+# Note: to reduce false positives, a number of technically-valid-but-rarely-used
+# email address patterns (e.g. with parenthesis or slashes) will not match
 email_pattern = r'''
-    (?<= ^ | [[({<\b\s@?!;,:'".¿¡\p{Han}] | \\['"] )
+    (?<= ^ | [[({<\b\s@,?!;'"\p{Han}¿¡:.] | \\['"] )  # left delimiter
     (
-      [^[({<\b\s@?!;,:)'"]+
+      (?:                                             # local part
+        [^][(){}<>\b\s@,?!;'":#/\\=.\-]               # arbitrary character
+        |
+        (?: [=.\-] (?! [.@]) )                        # ".=-" not before ".@"
+      )+
       @
-      [^\b\s@!?;,/]*
-      [^\b\s@?!;,/:)('">.]
-      \.
-      \p{L} \w{1,}
+      (?:
+        (?:
+             \w                                       # single-letter subdomain
+           |
+             [^.\b\s@?!;,/()>\-:]                     # subdomain (>=2 letter)
+             [^.\b\s@?!;,/()>]{0,62}
+             [^.\b\s@?!;,/()>\-:'"]
+        )
+        \.
+      ){1,10}
+      (?: \p{L}{2,63} | xn-- \w+ )                    # TLD, including IDN
     )
-    (?= $ | [])}>\b\s@,?!;:'".\p{Han}] | \\['"] )
+    (?= $ | [])}>\b\s@,?!;'"\p{Han}] | \\['"] | : (?! \d) | \. (?! \S))   # right delim
 '''
 
 
