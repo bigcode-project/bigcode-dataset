@@ -92,7 +92,7 @@ def redact_pii_text(text, secrets, replacements, add_references=False):
         secrets (json): json string with the secrets to redact
         replacements (dict): dictionary of replacements for each PII type
         add_references (bool): whether to add references to the redacted text (delimiters to PII)
-        for vizualization
+        for visualization
     Returns:
         text (str): new text with redacted secrets
     """
@@ -132,7 +132,7 @@ def redact_pii_text(text, secrets, replacements, add_references=False):
                 references.append(f"PI:{secret['tag']}:{replacement}END_PI")
             last_text = text[secret["end"] :]
             step = secret["end"]
-        # if supbarpts are not empty join them (it can be empty when all secrets were skipped)
+        # if subparts are not empty join them (it can be empty when all secrets were skipped)
         new_text = "".join(subparts) + last_text if subparts else last_text
         if add_references:
             references = "".join(references) + last_text if references else ""

@@ -1,7 +1,7 @@
 # Filtering The Stack (Python/Java/Javascript subsets)
 Three filters for the preprocessing of The Stack are available:
 
-* **basic**: uses line length filtering and percentage of alphanumeric characters (similarily to [Codex](https://arxiv.org/abs/2107.03374)), default thresholds are `max_line_length=1000`, `mean_line_length=100`, `alpha_num_threshold=0.25`.
+* **basic**: uses line length filtering and percentage of alphanumeric characters (similarly to [Codex](https://arxiv.org/abs/2107.03374)), default thresholds are `max_line_length=1000`, `mean_line_length=100`, `alpha_num_threshold=0.25`.
 * **stars**: filter based on number of stars of the file (i.e. of the parent repository), default threshold is `threshold_stars=5`.
 * **comments**:  filter based on minimum and maximum comments to code ratio, default thresholds are `min_comments_ratio=0.01`, `max_comments_ratio=0.8`:
     * For Python, we extract comments using Python tokenizer and docstrings using `ast` parsing.

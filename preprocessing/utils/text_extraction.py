@@ -20,7 +20,7 @@ NODE_TYPES = {
 
 # comment extraction
 def get_comments(s, clean=False):
-    "Returns a string including all coments in python code"
+    "Returns a string including all comments in python code"
     coments = []
     g = tokenize.generate_tokens(StringIO(s).readline)
     for toknum, tokval, _, _, _ in g:
@@ -70,7 +70,7 @@ def get_docstrings(source, module="<string>"):
 
 
 def get_text_python(source, comments=True, clean_comments=True):
-    """Extract all natural text in source: comments + doctsrings
+    """Extract all natural text in source: comments + docstrings
     the extraction fails in case of syntax errors in the file
     Args:
         source: the code to parse
