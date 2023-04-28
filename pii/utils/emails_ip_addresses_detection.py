@@ -74,7 +74,7 @@ email_pattern = r'''
         )
         \.
       ){1,10}
-      (?: \p{L}{2,63} | xn-- \w+ )                    # TLD, including IDN
+      (?: [\p{L}\p{M}]{2,63} | xn-- \w+ )             # TLD, including IDN
     )
     (?= $ | [])}>\b\s@,?!;'"\p{Han}] | \\['"] | : (?! \d) | \. (?! \S))   # right delim
 '''
