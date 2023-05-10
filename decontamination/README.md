@@ -7,7 +7,8 @@ This directory contains a script to decontaminate data with:
 
 ## Exact substring matching
 
-This script was used to produce this [dataset](https://huggingface.co/datasets/bigcode/the-stack-pjjs-decontaminate).
+This script was used to decontaminate BigCode training datasets for SantaCoder and StarCoder. For example, to produce [StarCoderData](https://huggingface.co/datasets/bigcode/starcoderdata), we removed files that contained docstrings or solutions
+from HumanEval and MBPP, docstrings from APPS, questions from GSM8K, or prompts from DS-1000 benchmark.
 ```bash
 pip install -r requirements.txt
 python find_substrings.py --dataset-name bigcode/the-stack-subset-py-js-java-450k --output-dir /path/to/output --num-proc 32
