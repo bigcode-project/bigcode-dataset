@@ -19,7 +19,7 @@ In this case, the dataset is saved in parquet shards in a clone of `remote_repo`
 A log file `filtering.log` is saved in the working directory with details about the processing and percentage of files and volume removed at each step.
 
 # Filtering GitHub Issues
-To filter GitHub conversations:
+We only release the filtered GitHub issues dataset as part of [StarCoderData](https://huggingface.co/datasets/bigcode/starcoderdata), but we used the following code to curate the dataset:
 ```bash
 python filtering_issues.py --dataset_name bigcode/subset-github-issues --subset data/ --hub_username loubnabnl --remote_repo test_filter_github_issues
 ```
