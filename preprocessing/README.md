@@ -23,3 +23,9 @@ python filtering.py --dataset_name bigcode/the-stack-smol --subset data/java --f
 In this case, the dataset is saved in parquet shards in a clone of `remote_repo`. If you want to push the data directly to the hub add `push_to_hub` flag. 
 
 A log file `filtering.log` is saved in the working directory with details about the processing and percentage of files and volume removed at each step.
+
+# Filtering GitHub Issues
+We only release the filtered GitHub issues dataset as part of [StarCoderData](https://huggingface.co/datasets/bigcode/starcoderdata), but we used the following code to curate the dataset:
+```bash
+python filtering_issues.py --dataset_name bigcode/subset-github-issues --subset data/ --hub_username loubnabnl --remote_repo test_filter_github_issues
+```
