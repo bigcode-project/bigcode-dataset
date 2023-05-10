@@ -32,4 +32,4 @@ python filtering_issues.py --dataset_name bigcode/subset-github-issues --subset 
 ```
 
 # Filtering Git Commits
-We release the filtered Git Commits dataset as part of  [StarCoderData](https://huggingface.co/datasets/bigcode/starcoderdata), and provide a notebooks with the cleaning steps at `filtering_git_commits.ipynb`.
+We release the filtered Git Commits dataset as part of  [StarCoderData](https://huggingface.co/datasets/bigcode/starcoderdata), and provide a notebook with the cleaning steps at `filtering_git_commits.ipynb`.
