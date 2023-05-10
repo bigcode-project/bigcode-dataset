@@ -13,16 +13,18 @@ def save_shard(shard_tuple):
     shard.to_parquet(filename)
 
 
-def save_manual_shards(ds, user="loubnabnl", remote_dataset_repo="bigcode-pii-pjj"):
+def save_manual_shards(ds, user="loubnabnl", remote_dataset_repo="bigcode-pii-pjj", out_path=None, subset="data/"):
     """Save sharded data
     Args:
         ds (Dataset): dataset to be saved
         user (str): user name
         remote_dataset_repo (str): remote dataset repository
-        out_path (str): path to save the shards"""
+        out_path (str): path to save the shards
+        subset (str): path inside the local repo to save the shards
+    """
     # this will create a folder OUT_PATH that is a clone of REMOTE_DATASET_REPO
     # you can save the shards inside it and do git add/commit/push to push data to the hub
-    out_path = remote_dataset_repo
+    out_path = remote_dataset_repo if out_path is None else out_path
     # if out path doesnt already exist
     if not os.path.exists(out_path):
         repo = Repository(
@@ -34,8 +36,8 @@ def save_manual_shards(ds, user="loubnabnl", remote_dataset_repo="bigcode-pii-pj
             git_user=user,
         )
 
-    # files will be numerous we save them in a folder called data inside out_path
-    os.mkdir(out_path + "/data")
+    # files will be numerous we save them in a folder called `subset` inside out_path
+    os.makedirs(f"{out_path}/{subset}")
     SHARD_SIZE = 1000 << 20
     if ds._indices is not None:
         dataset_nbytes = ds.data.nbytes * len(ds._indices) / len(ds.data)
@@ -52,7 +54,7 @@ def save_manual_shards(ds, user="loubnabnl", remote_dataset_repo="bigcode-pii-pj
     )
     # use f"{OUT_PATH}/data/train-{index:05d}-of-{num_shards:05d}.json" instead for json files
     filenames = (
-        f"{out_path}/data/train-{index:05d}-of-{num_shards:05d}.parquet"
+        f"{out_path}/{subset}/train-{index:05d}-of-{num_shards:05d}.parquet"
         for index in range(num_shards)
     )
 

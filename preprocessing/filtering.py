@@ -8,6 +8,7 @@ import fnmatch
 import logging
 import time
 from functools import partial
+import csv
 
 import numpy as np
 from datasets import load_dataset
@@ -19,7 +20,7 @@ from utils.manual_sharding import save_manual_shards
 from utils.text_extraction import get_nl_ratio
 
 # define list of filters to apply
-ALL_FILTERS = ["basic", "stars", "comments", "fertility"]
+ALL_FILTERS = ["basic", "basic_per_extension", "stars", "comments", "fertility", "xml", "html", "large_and_small_files"]
 THRESHOLDS_FERTILITY = {"python": 2.5, "java": 2.9, "javascript": 2.6}
 
 
@@ -89,6 +90,91 @@ def basic_filters(example):
     return True
 
 
+def basic_filters_per_extension(example, ext_to_filter):
+    """Filter files based on line length and % alphanumeric characters.
+    The filtering parameters depend on the file extension, given by `ext_to_filter`"""
+    # Get the filter-params we want to use
+    # extension `None` is an empty string in the csv
+    try:
+        (include, line_max, line_mean, alphanum_frac, alphabetic_frac) = ext_to_filter[(language_format_from_dataset(
+            example["lang"]), example["ext"] if example["ext"] is not None else ""
+        )]
+    except KeyError as e:
+        # Some extensions are not in the csv. This happens for dockerfiles.
+        # Exclude these files
+        logging.error(str(e) + f":{example['ext']} not in ext_to_filter")
+        include = False
+    if not include:
+        return False
+    if line_max and example["max_line_length"] > line_max:
+        return False
+    elif line_mean and example["avg_line_length"] > line_mean:
+        return False
+    # Filter files with low percentage of alphanumeric chars
+    elif alphanum_frac and example["alphanum_fraction"] < alphanum_frac:
+        return False
+    # Filter files with low percentage of alphabetic chars
+    elif alphabetic_frac and sum(map(str.isalpha, example['content'])) < alphabetic_frac * len(example['content']):
+        return False
+    return True
+
+
+def language_format_from_dataset(lang: str):
+    """Convert: Language field in dataset -> language field in csv file that defines the filters."""
+    # TODO: other special cases?
+    if lang == "C#":
+        return "c-sharp"
+    if lang == "F#":
+        return "f-sharp"
+    return lang.lower().replace(" ", "-")
+
+def language_format_from_data_dir(lang: str):
+    """Convert: Language subset name in dedup data -> language field in csv file that defines the filters."""
+    if lang == "cpp":
+        return "c++"
+    return lang
+
+
+def language_format_from_csv_to_data_dir(lang: str):
+    """Convert: language field in csv -> Language subset name in dedup data"""
+    if lang == "c++":
+        return "cpp"
+    return lang
+
+
+def get_filter_params(row: dict):
+    """Extract filter parameters from csv row"""
+    include = row["Include"] == "1"
+    try:
+        line_max = int(row["Long_line_threshold"])
+    except ValueError:
+        line_max = None
+    line_mean = 100 if line_max else None
+    try:
+        alphanum_frac = float(row["Alphanum_threshold"])
+    except ValueError:
+        alphanum_frac = None
+    try:
+        alphabetic_frac = float(row["Alpha filter"])
+    except ValueError:
+        alphabetic_frac = None
+    return include, line_max, line_mean, alphanum_frac, alphabetic_frac
+
+
+def load_filter_csv(path: str, language: str = None):
+    """Load csv file that specifies the filter to apply for each (lang, extension).
+    TODO: add some tests. Check that filters are correctly set."""
+    # (Lang, extension) -> filter_args
+    ext_to_filter = {}
+    with open(path) as f:
+        for row in csv.DictReader(f):
+            # Only take the rows corresponding to the language if specified
+            if language is None or row["language"] == language:
+                ext_to_filter[(row["language"], row["extension"])] = get_filter_params(row)
+    assert len(ext_to_filter) > 0, f"Did not find filtering params corresponding to language: `{language}` in: {path}"
+    return ext_to_filter
+
+
 def char_token_ratio(examples, tokenizer):
     ratio_list = []
     for code in examples["content"]:
@@ -109,8 +195,43 @@ def filter_tokenizer(examples):
     return values
 
 
+def filter_xml(example):
+    """Filter-out XML files"""
+    return not ('<?xml version=' in example['content'][:100])
+
+
+def filter_html(example):
+    """Filter HTML files based on displayed text VS code ratio"""
+    assert example["lang"] == "HTML", "Filter is only for html examples"
+    html = example["content"]
+    try:
+        soup = BeautifulSoup(html, features="html.parser")
+    except (TypeError, UnboundLocalError):
+        return False
+
+    # kill all script and style elements
+    for script in soup(["script", "style"]):
+        script.extract()    # rip it out
+
+    # get text
+    text = soup.get_text()
+    ratio = len(text)/len(html)
+    return ratio>0.2  and len(text)>100
+
+
+def filter_large_and_small_files(example):
+    return args.min_size <= example['size'] and example['size'] <= args.max_size
+
+
 def get_size_text(example):
     return {"size": len(example["content"])}
+
+
+LICENSE_COLUMNS = ['max_stars_repo_licenses', 'max_issues_repo_licenses', 'max_forks_repo_licenses']
+def fix_license_cols(example):
+    for col in LICENSE_COLUMNS:
+        example[col] = [x["item"] for x in example[col]["list"]]
+    return example
 
 
 if __name__ == "__main__":
@@ -128,7 +249,7 @@ if __name__ == "__main__":
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO,
-        handlers=[logging.FileHandler("filtering.log"), logging.StreamHandler()],
+        handlers=[logging.FileHandler(args.log_file), logging.StreamHandler()],
     )
     logger.info(
         f"** The job is running with the following arguments: **\n{args}\n **** "
@@ -145,6 +266,8 @@ if __name__ == "__main__":
     if "size" not in dataset.column_names:
         logger.info("Add text size column")
         dataset = dataset.map(get_size_text)
+    if args.fix_license_columns:
+        dataset = dataset.map(fix_license_cols, num_proc=args.num_workers)
     logger.info(
         f"Dataset size before any filtering: {len(dataset)} examples, {sum(dataset['size']) / 1e9:.2f} GB"
     )
@@ -206,6 +329,39 @@ if __name__ == "__main__":
             )
             logger.info(
                 f"Percentage of volume removed {np.round((old_size_gb - new_size_gb)*100/old_size_gb, 2)}%"
+            )
+            dataset = ds
+        
+        elif filter == "basic_per_extension":
+            assert args.per_extension_filter_csv is not None
+            language = language_format_from_data_dir(args.subset.split("/")[-1]) if args.subset is not None else None
+            logger.info(
+                f"===== Language: {language}. Basic filtering with line_max, avg_line, alphanum_frac and alphabetic_frac given by : {args.per_extension_filter_csv} ====="
+            )
+            logger.info(
+                f""
+            )
+            ext_to_filter = load_filter_csv(args.per_extension_filter_csv, language=language)
+            logger.info(
+                f"Loaded the following filters-per-extension: {ext_to_filter}"
+            )
+            old_size = len(dataset)
+            old_size_gb = sum(dataset["size"])
+            t_start = time.time()
+            ds = dataset.filter(partial(basic_filters_per_extension, ext_to_filter=ext_to_filter))
+            logger.info(f"{filter} Filtering done in {time.time() - t_start:.2f} seconds")
+            logger.info(
+                f"{filter} Percentage of removed files: {np.round((old_size - len(ds))*100/old_size, 2)}%"
+            )
+            new_size_gb = sum(ds["size"])
+            logger.info(
+                f"Dataset size before {filter} filtering: {old_size} examples, {old_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"Dataset size after {filter} filtering: {len(ds)} examples, {new_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"{filter} Percentage of volume removed {np.round((old_size_gb - new_size_gb)*100/old_size_gb, 2)}%"
             )
             dataset = ds
 
@@ -295,6 +451,91 @@ if __name__ == "__main__":
             )
             dataset = ds
 
+        elif filter == "xml":
+            logger.info(
+                f"===== Filtering out XML files ====="
+            )
+            old_size = len(dataset)
+            old_size_gb = sum(dataset["size"])
+            t_start = time.time()
+            ds = dataset.filter(
+                filter_xml,
+                # batched=True,
+                # batch_size=args.batch_size,
+                # num_proc=args.num_workers,
+            )
+            logger.info(f"{filter} Filtering done in {time.time() - t_start:.2f} seconds")
+            logger.info(
+                f"{filter} Percentage of removed files: {np.round((old_size - len(ds))*100/old_size, 2)}%"
+            )
+            new_size_gb = sum(ds["size"])
+            logger.info(
+                f"Dataset size before {filter} filtering: {old_size} examples, {old_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"Dataset size after {filter} filtering: {len(ds)} examples, {new_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"{filter} Percentage of volume removed {np.round((old_size_gb - new_size_gb)*100/old_size_gb, 2)}%"
+            )
+            dataset = ds
+
+        elif filter == "html":
+            from bs4 import BeautifulSoup
+            logger.info(
+                f"===== Filtering out HTML files ====="
+            )
+            old_size = len(dataset)
+            old_size_gb = sum(dataset["size"])
+            t_start = time.time()
+
+            ds = dataset.filter(
+                filter_html,
+                num_proc=args.num_workers,
+            )
+            logger.info(f"{filter} Filtering done in {time.time() - t_start:.2f} seconds")
+            logger.info(
+                f"{filter} Percentage of removed files: {np.round((old_size - len(ds))*100/old_size, 2)}%"
+            )
+            new_size_gb = sum(ds["size"])
+            logger.info(
+                f"Dataset size before {filter} filtering: {old_size} examples, {old_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"Dataset size after {filter} filtering: {len(ds)} examples, {new_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"{filter} Percentage of volume removed {np.round((old_size_gb - new_size_gb)*100/old_size_gb, 2)}%"
+            )
+            dataset = ds
+        elif filter == "large_and_small_files":
+            logger.info(
+                f"===== Filtering out large and small files ====="
+            )
+            old_size = len(dataset)
+            old_size_gb = sum(dataset["size"])
+            t_start = time.time()
+
+            ds = dataset.filter(
+                filter_large_and_small_files,
+                num_proc=args.num_workers,
+            )
+            logger.info(f"{filter} Filtering done in {time.time() - t_start:.2f} seconds")
+            logger.info(
+                f"{filter} Percentage of removed files: {np.round((old_size - len(ds))*100/old_size, 2)}%"
+            )
+            new_size_gb = sum(ds["size"])
+            logger.info(
+                f"Dataset size before {filter} filtering: {old_size} examples, {old_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"Dataset size after {filter} filtering: {len(ds)} examples, {new_size_gb / 1e9:.2f} GB"
+            )
+            logger.info(
+                f"{filter} Percentage of volume removed {np.round((old_size_gb - new_size_gb)*100/old_size_gb, 2)}%"
+            )
+            dataset = ds
+
     # Save dataset
     logger.info(
         f"Final dataset has {len(dataset)} samples and {sum(dataset['size']) / 1e9:.2f} GB of code"
@@ -309,7 +550,37 @@ if __name__ == "__main__":
         print(
             f"Saving the dataset in manual shards in a clone of {args.hub_username + args.remote_repo}"
         )
-    save_manual_shards(
-        dataset, user=args.hub_username, remote_dataset_repo=args.remote_repo
-    )
-    logger.info(f"Dataset successfully saved in {time.time() - t_start:.2f} seconds")
+    try:
+        save_manual_shards(
+            dataset, user=args.hub_username, remote_dataset_repo=args.remote_repo, out_path=args.out_path,  subset=args.subset
+        )
+        logger.info(f"Dataset successfully saved at {args.out_path}/{args.subset} in {time.time() - t_start:.2f} seconds")
+    except FileExistsError:
+        logger.warning(f"Output dir already exists at {args.out_path}/{args.subset}. Will not save filtered data")
+
+    # Run decontamination
+    if args.run_decontamination:
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
+        from decontamination.find_substrings import SubstringFilterer
+
+        output_dir_decontaminated = f"{args.out_path}_decontaminate/{args.subset}"
+
+        filterer = SubstringFilterer(
+            output_dir=output_dir_decontaminated,
+            cached_decontamination_dir=None,  # no previous cached run
+            split_languages=False,
+            cache_retrieval_key="",
+            data_dir=output_dir_decontaminated
+        )
+
+        filtered = filterer.run(dataset, args.num_workers, args.batch_size)
+
+        filtered_size_gb = sum(filtered["size"])
+        logger.info(
+            f"Removed {len(dataset) - len(filtered)} / {len(dataset)} files"
+        )
+        logger.info(
+            f"Dataset size after decontamination: {len(filtered)} examples, {filtered_size_gb / 1e9:.2f} GB"
+        )
