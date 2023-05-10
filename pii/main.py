@@ -1,6 +1,6 @@
 """Here we detect PII: Emails, IP addresses, and keys (SSH/API) and redact/anonymize them
     * we use one regex for emails and one for IP addresses
-    * for keys we use detect-secrets tool, which is a combination of multiple plgins (regexes, entropy..)
+    * for keys we use detect-secrets tool, which is a combination of multiple plugins (regexes, entropy..)
     * we also add some filters on top of each tool to decrease the number of false positives
 This script is adapted from https://github.com/bigscience-workshop/data-preparation/blob/main/preprocessing/training/02_pii/pii_processor.py
 """

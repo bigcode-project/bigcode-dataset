@@ -1,6 +1,6 @@
 # PII detection and redaction for Emails, IP adresses and Secret keys
 
-We provide code to detect Emails, IP addresses and API/SSH keys in text datasets (in particular datasets of source code). We use regexes for emails and IP addresses (they are adapted from [BigScience PII pipeline](https://github.com/bigscience-workshop/data-preparation/tree/main/preprocessing/training/02_pii)). And we use [detect-secrets](https://github.com/Yelp/detect-secrets) for finding secrets keys. We additionally implement some filters on top to reduce the number of false positives. There is also some evaluation code to test the pipeline on a PII benchamrk we annotated.
+We provide code to detect Emails, IP addresses and API/SSH keys in text datasets (in particular datasets of source code). We use regexes for emails and IP addresses (they are adapted from [BigScience PII pipeline](https://github.com/bigscience-workshop/data-preparation/tree/main/preprocessing/training/02_pii)). And we use [detect-secrets](https://github.com/Yelp/detect-secrets) for finding secrets keys. We additionally implement some filters on top to reduce the number of false positives. There is also some evaluation code to test the pipeline on a PII benchmark we annotated.
 
 ## Usage
 ```

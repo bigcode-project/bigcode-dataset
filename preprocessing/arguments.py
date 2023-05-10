@@ -15,7 +15,7 @@ class FilteringArguments:
     )
     split: Optional[str] = field(
         default="train",
-        metadata={"help": "Datasset split to process."},
+        metadata={"help": "Dataset split to process."},
     )
     tokenizer_name: Optional[str] = field(
         default="bigcode/digit-bytelevel-bpe-jss-v1.1-49152",

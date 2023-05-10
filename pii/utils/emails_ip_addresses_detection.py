@@ -102,7 +102,7 @@ def get_regexes(high_risk_tags={"EMAIL", "IP_ADDRESS", "KEY"}):
         elif tag == "EMAIL":
             mst_regexes["EMAIL"] = email_regex
         else:
-            sys.stderr.write("Dont have tag regex pattern for %s =(" % tag)
+            sys.stderr.write("Don't have tag regex pattern for %s =(" % tag)
 
     return mst_regexes
 
@@ -124,7 +124,7 @@ def matches_date_pattern(matched_str):
 def filter_versions(matched_str, context):
     """Filter addresses in this format x.x.x.x  and the words dns/server
     don't appear in the neighboring context, usually they are just versions"""
-    # count occurence of dots 
+    # count occurrence of dots 
     dot_count = matched_str.count('.')
     exclude = (dot_count == 3 and len(matched_str) == 7) 
     if exclude:

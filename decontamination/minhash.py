@@ -68,7 +68,7 @@ def load_dataset_with_config(conf: Dict[str, Any]) -> Dataset:
     ----------
     conf : Dict[str, Any]
         The configuration. Mainly, there are three ways to load a dataset:
-        1. Directly from th ehub
+        1. Directly from the hub
         2. From a local git repository
         3. From a local dataset directory that was saved by `save_to_disk` before
 

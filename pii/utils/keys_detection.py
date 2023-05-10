@@ -54,11 +54,11 @@ def is_gibberish(matched_str):
 
 def is_hash(content, value):
     """Second check if the value is a hash (after gibberish detector)"""
-    # get the line where value occured
+    # get the line where value occurred
     try:
         res = content.index(value)
     except ValueError:
-        # TODO: fix this isue happend one for JS in the stack-smol, file did contain value
+        # TODO: fix this issue happened one for JS in the stack-smol, file did contain value
         print("Value not found in content, why this happened?")
         return False
     lines = content[:content.index(value)].splitlines()
