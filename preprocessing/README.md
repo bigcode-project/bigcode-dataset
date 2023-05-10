@@ -1,14 +1,20 @@
-# Filtering The Stack (Python/Java/Javascript subsets)
+# Filtering The Stack
 Three filters for the preprocessing of The Stack are available:
 
 * **basic**: uses line length filtering and percentage of alphanumeric characters (similarly to [Codex](https://arxiv.org/abs/2107.03374)), default thresholds are `max_line_length=1000`, `mean_line_length=100`, `alpha_num_threshold=0.25`.
 * **stars**: filter based on number of stars of the file (i.e. of the parent repository), default threshold is `threshold_stars=5`.
-* **comments**:  filter based on minimum and maximum comments to code ratio, default thresholds are `min_comments_ratio=0.01`, `max_comments_ratio=0.8`:
+* **comments**:  filter based on minimum and maximum comments to code ratio, default thresholds are `min_comments_ratio=0.01`, `max_comments_ratio=0.8` (this filter was used in the preparation of [SantaCoder](https://huggingface.co/bigcode/santacoder) data which included python, Java & JavaScript only):
     * For Python, we extract comments using Python tokenizer and docstrings using `ast` parsing.
     * For other languages (Java and Javascript), we extract comments using `pygments` library.
     * We compute the comment to code ratio of a file by counting the number of characters in comments over the total number of characters in the file.
 * **fertility**: filter based on the character to token ratio after calling the tokenizer on the code file. Different thresholds for Python (2.5), Java (2.9) and JavaScript (2.6) for data after near-dedup + basic filtering & PII redaction.
 
+* Additionnal filters used for StarCoder Training [StarCodeData](https://huggingface.co/datasets/bigcode/starcoderdata):
+    - basic-filter with parameters that depend on the file's extension.
+    - filter to remove XML files
+    - filter for HTML based on displayed-text VS code ratio
+    - filter to remove small and large files (for json and yaml)
+    - code to generate full-content with meta (repo-name, filename, num stars) for training
 
 Below is an example for running all filters on the java subset of [The-Stack-Smol](https://huggingface.co/datasets/bigcode/the-stack-smol). You can specify the filters to use separated by commas in `--filters` argument:
 ```bash
