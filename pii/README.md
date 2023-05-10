@@ -2,7 +2,12 @@
 
 We provide code to detect Emails, IP addresses and API/SSH keys in text datasets (in particular datasets of source code). We use regexes for emails and IP addresses (they are adapted from [BigScience PII pipeline](https://github.com/bigscience-workshop/data-preparation/tree/main/preprocessing/training/02_pii)). And we use [detect-secrets](https://github.com/Yelp/detect-secrets) for finding secrets keys. We additionally implement some filters on top to reduce the number of false positives. There is also some evaluation code to test the pipeline on a PII benchamrk we annotated.
 
-## Usage
+
+We also provide the code used for training and running [StarPII](https://huggingface.co/bigcode/starpii) in `ner_model` and NER model for PII detection on: Names, Emails, Keys, Passwords & IP addresses (more details in our paper: [StarCoder: May The Source Be With You](https://drive.google.com/file/d/1cN-b9GnWtHzQRoE7M7gAEyivY0kl4BYs/view)).  We provide the code (and `slurm` scripts) used for running Inference on [StarCoderData](https://huggingface.co/datasets/bigcode/starcoderdata), we were able to detect PII in ~800GB of text in 800 GPU-hours on A100 80GB. To replace secrets we used teh following tokens:
+<NAME>, <EMAIL>, <KEY>, <PASSWORD>
+To mask IP addresses, we randomly selected an IP address from 5~synthetic, private, non-internet-facing IP addresses of the same type.
+
+## Usage of the regex approach
 ```
 pip install -r requirements.txt
 ```
