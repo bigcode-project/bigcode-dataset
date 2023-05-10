@@ -18,4 +18,6 @@ necessary used for model training.
     - filter for HTML based on displayed-text VS code ratio
     - filter to remove small and large files (for json and yaml)
     - code to generate full-content with meta (repo-name, filename, num stars) for training
+  - Filters for GitHub Issues
+  - Filters for Git Commits
 - `decontamination`: script to remove files that match test-samples from code generation benchmarks.
