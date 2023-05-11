@@ -48,7 +48,7 @@ def small_star_reduce(group):
     return [(n, minimum) for n in nodes if n != minimum]
 
 
-def ngrams(sequence: List[str], n: int) -> Iterable:
+def ngrams(sequence: List[str], n: int, min_ngram_size: int = 5) -> Iterable:
     """
     Code taken from NLTK, without padding.
 
@@ -58,6 +58,8 @@ def ngrams(sequence: List[str], n: int) -> Iterable:
         The sequence of items to be converted into n-grams.
     n : int
         The order of the n-grams to be extracted.
+    min_ngram_size : int
+        The minimum number of items in the sequence to generate n-grams.
 
     Returns
     -------
@@ -71,6 +73,9 @@ def ngrams(sequence: List[str], n: int) -> Iterable:
     >>> list(ngrams(['a', 'b', 'c', 'd'], 3))
     [('a', 'b', 'c'), ('b', 'c', 'd')]
     """
+    if len(sequence) < min_ngram_size:
+        return []
+    
     iterables = tee(sequence, n)
     for i, sub_iterable in enumerate(iterables):
         for _ in range(i):
@@ -110,6 +115,7 @@ def generate_hash_values(
     ngram_size: int,
     hashranges: List[Tuple[int, int]],
     permutations: np.ndarray,
+    min_ngram_size: int,
 ) -> List[Tuple[int, bytes, int]]:
     """
     Generate the MinHashLSH values for a given document.
@@ -128,6 +134,8 @@ def generate_hash_values(
         The ranges of offsets for each hash value.
     permutations : np.ndarray
         The permutations for the hash values.
+    min_ngram_size : int
+        The minimum number of items in the sequence to generate n-grams.
 
     Returns
     -------
@@ -135,7 +143,7 @@ def generate_hash_values(
         The list of (band_idx, hash value, idx) for the document.
     """
     hashvalues = np.ones(num_perm, dtype=np.uint64) * MAX_HASH
-    tokens = {" ".join(t) for t in ngrams(NON_ALPHA.split(content), ngram_size)}
+    tokens = {" ".join(t) for t in ngrams(NON_ALPHA.split(content), ngram_size, min_ngram_size)}
     hv = np.array([sha1_hash32(token.encode("utf-8")) for token in tokens], dtype=np.uint64)
     a, b = permutations
     phv = np.bitwise_and(((hv * np.tile(a, (len(hv), 1)).T).T + b) % MERSENNE_PRIME, MAX_HASH)
@@ -238,6 +246,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Near-deduplicating BigQuery Table with PySpark")
     parser.add_argument("--table", type=str, required=True, help="BigQuery table to deduplicate")
     parser.add_argument("--threshold", type=float, default=0.7, help="Similarity threshold")
+    parser.add_argument("--min_ngram_size", type=int, default=5, help="Shorter docs will be removed")
     parser.add_argument("--ngram_size", type=int, default=5, help="N-gram size")
     parser.add_argument("--num_perm", type=int, default=256, help="Number of permutations")
     parser.add_argument("--b", type=int, default=None, help="Number of bands")
@@ -284,6 +293,7 @@ if __name__ == "__main__":
                 ngram_size=args.ngram_size,
                 hashranges=HASH_RANGES,
                 permutations=PERMUTATIONS,
+                min_ngram_size=args.min_ngram_size,
             )
         )
         .groupBy(lambda x: (x[0], x[1]))
@@ -303,10 +313,19 @@ if __name__ == "__main__":
     results = a.collect()
     if len(results) == 0:
         log.info("No components found.")
+        df.write.option(
+            "maxRecordsPerFile", 300_000
+        ).option(
+            "intermediateFormat", "orc"
+        ).parquet(args.output, mode="overwrite")
         sys.exit(0)
 
     components = spark.createDataFrame(results, schema=["__id__", "component"]).sort(["component", "__id__"])
     components.show()
     df = df.join(components, on="__id__", how="left")
     df = df.filter(F.col("component").isNull()).drop("__id__", "component").cache()
-    df.write.json(args.output, mode="overwrite")
+    df.write.option(
+        "maxRecordsPerFile", 300_000
+    ).option(
+        "intermediateFormat", "orc"
+    ).parquet(args.output, mode="overwrite")

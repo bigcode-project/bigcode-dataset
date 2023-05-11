@@ -19,12 +19,14 @@ And make sure you have git-lfs installed.
 ### Usage
 
 ```bash
+# For details on the arguments, see the help message
+python minhash_deduplication.py --help
 # Quick example
-python minhash_deduplication.py --dataset codeparrot/codeparrot-clean-valid \  
+python minhash_deduplication.py --dataset codeparrot/codeparrot-clean-valid \
     --split train \
     --column content \
     --cache-dir .cache \
-    --verbose
+    --min-ngram-size 5
 # For details on the arguments, see the help message
 python minhash_deduplication.py --help
 ```
@@ -58,10 +60,25 @@ gcloud dataproc jobs submit pyspark --cluster ${CLUSTER_NAME} \
     near_deduplication/minhash_deduplication_spark.py \
     -- \
     --table "huggingface-science-codeparrot.the_stack_java.java" \
-    --output "gs://chenghao-data/dataproc_output/deduplicated"
+    --output "gs://chenghao-data/dataproc_output/deduplicated" \
+    --min_ngram_size 5 \
+    --ngram_size 5 \
+    --threshold 0.7
 ```
 
-With above settings, it took about 40 minutes to deduplicate the Java subset (42 million docs, 319GB), 15x faster than the following python implementation in a comparable single-machine environment.
+With above settings, it took about 40 minutes to deduplicate the Java subset (42 million docs, 319GB), 15x faster than the following python implementation in a comparable single-machine environment. In terms of scaling, it took about 5 hours to deduplicate the 1.3 TB json subset of the Stack with a 15-machine cluster. 
+
+Warning: Big Query might change your list schema in the output! You can use the following code to restore the format (credit to [@RaymondLi0](https://github.com/RaymondLi0)):
+
+```python
+LIST_COLUMNS = ['max_stars_repo_licenses', 'max_issues_repo_licenses', 'max_forks_repo_licenses']
+def fix_license_cols(example):
+    for col in LIST_COLUMNS:
+        example[col] = [x["item"] for x in example[col]["list"]]
+    return example
+...
+ds = ds.map(fix_license_cols)
+```
 
 #### Python Implementation Analysis
 
@@ -79,7 +96,7 @@ To understand the limitation of current deduplication implementation, it is impo
 
 We report here some stats on the experiments we did along the way with a 80-core machine on GCP (M1):
 
-For SantaCoder, our results can be replicated by the following commands:
+For SantaCoder, our results can be replicated by the following commands using [older version of the code](https://github.com/bigcode-project/bigcode-analysis/tree/fdd70bffb9cceab031f6d682edf83b5af49e8aaf):
 
 ```bash
 python minhash_deduplication.py --dataset bigcode/the-stack-dedup-pjj --data-dir data/java --revision v1.1.a1 --cache-dir cache2 --ngram-size 5 --threshold 0.7 --min-token-length 10 --fast
