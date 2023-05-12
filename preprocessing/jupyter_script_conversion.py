@@ -83,4 +83,4 @@ if __name__ == "__main__":
         'haskell': '.hs', 'tcl': '.tcl', 'maxima': '.mac', 'gnuplot': '.gp'
     }
     convert_to_script(dataset, "script", "unknown")
-    convert_unknown_files(guess, lang2ext)
+    convert_unknown_files(guess, "script", "unknown", lang2ext)
