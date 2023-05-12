@@ -21,4 +21,5 @@ necessary used for model training.
   - Filters for GitHub Issues
   - Filters for Git Commits
   - Script to convert Jupyter notebooks to scripts
+  - Scripts to convert Jupyter notebooks to structured markdown-code-output triplets
 - `decontamination`: script to remove files that match test-samples from code generation benchmarks.

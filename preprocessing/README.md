@@ -40,3 +40,22 @@ We release the Jupyter scripts dataset as part of [StarCoderData](https://huggin
 python jupyter_script_conversion.py
 ```
 
+# Creating Jupyter-structured dataset
+
+## Step 1
+Parse Jupyter notebooks from `the Stack`.  
+```
+python jupyter-structured/jupyter-segment-notebooks.py
+```
+
+## Step 2
+Generate markdown-code-output triplets.
+```
+python jupyter-structured/jupyter-generate-triplets.py
+```
+
+## Step 3
+Create notebook-level structured dataset using `jupyter-structured/jupyter-structured.ipynb`.
+
+
+
