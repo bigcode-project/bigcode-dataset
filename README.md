@@ -20,4 +20,5 @@ necessary used for model training.
     - code to generate full-content with meta (repo-name, filename, num stars) for training
   - Filters for GitHub Issues
   - Filters for Git Commits
+  - Script to convert Jupyter notebooks to scripts
 - `decontamination`: script to remove files that match test-samples from code generation benchmarks.
