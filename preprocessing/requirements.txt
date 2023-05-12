@@ -2,3 +2,5 @@ datasets==2.7.1
 huggingface_hub==0.10.1
 transformers==4.23.1
 pygments==2.11.2
+guesslang==2.2.1
+nbformat==14.4.4

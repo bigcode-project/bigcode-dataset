@@ -26,10 +26,17 @@ A log file `filtering.log` is saved in the working directory with details about 
 
 # Filtering GitHub Issues
 
-We release the filtered GitHub issues dataset as part of [StarCoderData](https://huggingface.co/datasets/bigcode/starcoderdata), and providethe code used to curate the dataset:
+We release the filtered GitHub issues dataset as part of [StarCoderData](https://huggingface.co/datasets/bigcode/starcoderdata), and provide the code used to curate the dataset:
 ```bash
 python filtering_issues.py --dataset_name bigcode/subset-github-issues --subset data/ --hub_username loubnabnl --remote_repo test_filter_github_issues
 ```
 
 # Filtering Git Commits
-We release the filtered Git Commits dataset as part of  [StarCoderData](https://huggingface.co/datasets/bigcode/starcoderdata), and provide a notebook with the cleaning steps at `filtering_git_commits.ipynb`.
+We release the filtered Git Commits dataset as part of [StarCoderData](https://huggingface.co/datasets/bigcode/starcoderdata), and provide a notebook with the cleaning steps at `filtering_git_commits.ipynb`.
+
+# Converting Jupyter Notebooks to Scripts
+We release the Jupyter scripts dataset as part of [StarCoderData](https://huggingface.co/datasets/bigcode/starcoderdata), and provide the code used to curate the dataset:
+```bash
+python jupyter_script_conversion.py
+```
+
