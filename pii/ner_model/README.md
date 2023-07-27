@@ -4,6 +4,8 @@ Here we provide the code used for training [StarPII](https://huggingface.co/bigc
 accelerate config
 accelerate launch ner_inference.py --process_batch_size=100000 --out_path=processed_dataset
 ```
-To replace secrets in StarCoderData we used teh following tokens:
+To replace secrets with this [code] in StarCoderData we used the following tokens:
+```
 <NAME>, <EMAIL>, <KEY>, <PASSWORD>
+```
 To mask IP addresses, we randomly selected an IP address from 5~synthetic, private, non-internet-facing IP addresses of the same type.
