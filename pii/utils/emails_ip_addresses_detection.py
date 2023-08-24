@@ -24,6 +24,7 @@ import ipaddress
 from gibberish_detector import detector
 
 # Regexes for PII detection
+GIBBERISH_MODEL_PATH = './gibberish_data/big.model'
 
 year_patterns = [
     regex.compile(
@@ -149,7 +150,7 @@ def is_gibberish(matched_str):
     # pip install gibberish-detector
     # download the training corpora from https://raw.githubusercontent.com/domanchi/gibberish-detector/master/examples/big.txt
     # run gibberish-detector train big.txt > big.model to generate the model (it takes 3 seconds)
-    Detector = detector.create_from_model('gibberish_data/big.model')
+    Detector = detector.create_from_model(GIBBERISH_MODEL_PATH)
     return Detector.is_gibberish(matched_str.lower())
 
 
