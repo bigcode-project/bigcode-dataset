@@ -1,4 +1,5 @@
 # PII redaction
+<<<<<<< HEAD
 To run PII redaction on a dataset that went though PII detection with StarPII using the code in `./pii_inference` folder:
 ```bash
 mkdir  ./logs
