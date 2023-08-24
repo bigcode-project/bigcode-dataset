@@ -1,14 +1,7 @@
-# Fine-tuning Bigcode-Encoder on an NER task  for PII detection
+# PII detection and Redaction using an NER model
+Here we provide code to:
+- fine-tune an encoder model (like [StarEncoder](https://huggingface.co/bigcode/starencoder)) for the task of PII detection (NER): see folder `pii_train_ner`
+- run inference with our fine-tuned [StarPII](https://huggingface.co/bigcode/starpii) for PII detection on multiple GPUs: see folder `pii_inference`
+- redact/mask PII detected with the model: see folder `pii_redaction`
 
-To run the training on all the dataset `bigcode/pii-full-ds`, use the following command: 
-```bash
-python -m torch.distributed.launch \
-        --nproc_per_node number_of_gpus train.py \
-        --dataset_name bigcode/pii-full-ds \
-        --debug \
-        --learning_rate 2e-5 \
-        --train_batch_size 8 \
-        --bf16 \
-        --add_not_curated
-```
-Note that we use a global batch size of 64 (8*8 GPUs). To use only curated dataset remove the flag `--add_not_curated`.
+This is the code we used for PII anonymization in the 800GB dataset [StarCoderData](https://huggingface.co/datasets/bigcode/starcoderdata).

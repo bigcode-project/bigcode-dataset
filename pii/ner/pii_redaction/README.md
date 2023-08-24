@@ -1,6 +1,7 @@
 # PII redaction
-To run PII redaction on a dataset that went though PII detection with this [NER model](https://huggingface.co/bigcode/bigcode-encoder-pii-ner-v2).
+To run PII redaction on a dataset that went though PII detection with StarPII using the code in `./pii_inference` folder:
 ```bash
+mkdir  ./logs
 LANG=python
 python main_redact.py --dataset_name  $DATA_PATH --target_dataset $LANG-no-pii --save_path_disk $LANG-no-pii-local
 ```
