@@ -5,7 +5,7 @@ We provide code to detect Names, Emails, IP addresses, Passwords API/SSH keys in
 For the **NER** model based approach (e.g [StarPII](https://huggingface.co/bigcode/starpii)), please go to the `ner` folder. 
 
 We provide the code used for training a PII NER model to detect : Names, Emails, Keys, Passwords & IP addresses (more details in our paper: [StarCoder: May The Source Be With You](https://drive.google.com/file/d/1cN-b9GnWtHzQRoE7M7gAEyivY0kl4BYs/view)).  You will also find the code (and `slurm` scripts) used for running PII Inference on [StarCoderData](https://huggingface.co/datasets/bigcode/starcoderdata), we were able to detect PII in 800GB of text in 800 GPU-hours on A100 80GB. To replace secrets we used teh following tokens:
-<NAME>, <EMAIL>, <KEY>, <PASSWORD>
+`<NAME>, <EMAIL>, <KEY>, <PASSWORD>`
 To mask IP addresses, we randomly selected an IP address from 5~synthetic, private, non-internet-facing IP addresses of the same type.
 
 ## Regex approach
