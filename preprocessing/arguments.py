@@ -93,6 +93,10 @@ class FilteringArguments:
         default=False,
         metadata={"help": "Run decontamination after the filtering"},
     )
+    add_metadata: Optional[bool] = field(
+        default=False,
+        metadata={"help": "Run add_content_with_meta after the filtering and decontamination"},
+    )
 
 @dataclass
 class ContentWithMetaArguments:

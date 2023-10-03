@@ -19,6 +19,9 @@ from arguments import FilteringArguments
 from utils.manual_sharding import save_manual_shards
 from utils.text_extraction import get_nl_ratio
 
+import datasets
+datasets.builder.has_sufficient_disk_space = lambda needed_bytes, directory='.': True
+
 # define list of filters to apply
 ALL_FILTERS = ["basic", "basic_per_extension", "stars", "comments", "fertility", "xml", "html", "large_and_small_files"]
 THRESHOLDS_FERTILITY = {"python": 2.5, "java": 2.9, "javascript": 2.6}
@@ -278,7 +281,7 @@ if __name__ == "__main__":
         raise ValueError(f"Output path already exists: {args.out_path}/data delete if before filtering")
 
     dataset = load_dataset(
-        args.dataset_name, split=args.split, use_auth_token=True, num_proc=rgs.num_workers
+        args.dataset_name, split=args.split, use_auth_token=True, num_proc=args.num_workers
     )
     logger.info(f"Dataset loaded in {time.time() - t_start:.2f} seconds")
     logger.info(f"Dataset: {dataset}")
@@ -358,8 +361,8 @@ if __name__ == "__main__":
         elif filter == "basic_per_extension":
             assert args.per_extension_filter_csv is not None
             language = language_format_from_data_dir(args.subset.split("/")[-1]) if args.subset is not None else None
+            logger.info(f"selected language: {language}")
             language = "python"
-            logger.info("selected language: ", language)
             logger.info(
                 f"===== Language: {language}. Basic filtering with line_max, avg_line, alphanum_frac and alphabetic_frac given by : {args.per_extension_filter_csv} ====="
             )
@@ -572,8 +575,6 @@ if __name__ == "__main__":
         sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
         from decontamination.benchmark_data import FILTER_OUT
 
-        FILTER_OUT.pop('apps_docstrings', None)
-        FILTER_OUT.pop('gsm8k_questions', None)
         logger.info(f"FILTER OUT Benchmarks: {FILTER_OUT.keys()}")
         def decontaminate(samples, filter_out=FILTER_OUT):
             """
@@ -601,7 +602,7 @@ if __name__ == "__main__":
 
         old_size = len(dataset)
         old_size_gb = sum(dataset["size"])
-        dataset = dataset.filter(decontaminate, batched=True, batch_size=10_000, num_proc=64)
+        dataset = dataset.filter(decontaminate, batched=True, batch_size=args.batch_size, num_proc=args.num_workers)
         filtered_size_gb = sum(dataset["size"])
         logger.info(
             f"Removed {old_size - len(dataset)} files from {old_size} (i.e {(old_size - len(dataset)) * 100 / old_size}%)"
@@ -612,10 +613,16 @@ if __name__ == "__main__":
 
     if args.add_metadata:
         from add_content_with_meta import content_with_meta
+        from add_content_with_meta import parse_args as parse_args_add_content_with_meta
 
         logger.info("===== Adding content with metadata =====")
         dataset = dataset.map(
-                content_with_meta,
+                partial(
+                    content_with_meta,
+                    add_repo_name_prob=.2,
+                    add_file_name_prob=.2,
+                    add_num_stars_prob=.2
+                ),
                 remove_columns=["content"],
                 num_proc=args.num_workers,
             )

@@ -38,18 +38,18 @@ def get_num_stars_bucket(num_stars: int) -> str:
         return "1000+"
     
 
-def content_with_meta(example):
+def content_with_meta(example, add_repo_name_prob, add_file_name_prob, add_num_stars_prob):
     # TODO
     res = ""
     # repo-name
-    if np.random.binomial(n=1, p=args.add_repo_name_prob):
-        res += f"{REPONAME_TOKEN}{example['max_stars_repo_name']}"
+    if np.random.binomial(n=1, p=add_repo_name_prob):
+        res += f"{REPONAME_TOKEN}{example['repo_name']}"
     # file-name
-    if np.random.binomial(n=1, p=args.add_file_name_prob):
-        res += f"{FILENAME_TOKEN}{example['max_stars_repo_path']}"
+    if np.random.binomial(n=1, p=add_file_name_prob):
+        res += f"{FILENAME_TOKEN}{example['path']}"
     # number of stars
-    if np.random.binomial(n=1, p=args.add_num_stars_prob):
-        num_stars = get_num_stars_bucket(example['max_stars_count'])
+    if np.random.binomial(n=1, p=add_num_stars_prob):
+        num_stars = get_num_stars_bucket(example['star_events_count'])
         res += f"{STARS_TOKEN}{num_stars}"
     if len(res) > 0:
         res += "\n"
@@ -88,7 +88,12 @@ if __name__ == "__main__":
     logger.info(f"Adding content_with_meta field: ")
 
     dataset = dataset.map(
-        content_with_meta,
+        partial(
+            content_with_meta,
+            add_repo_name_prob=args.add_repo_name_prob,
+            add_file_name_prob=args.add_file_name_prob,
+            add_num_stars_prob=args.add_num_stars_prob
+        ),
         remove_columns=["content"],
         num_proc=16
     )
