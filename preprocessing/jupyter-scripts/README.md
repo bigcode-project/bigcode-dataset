@@ -1,6 +1,6 @@
 ### Convert Jupyter Notebooks from The Stack v2 to Scripts
 
-We reuse the same pipeline used in StarCoderdata with some tweaks to adapt to The Stack v2 and to correctly parse some notebooks in `nbformat 3`.
+We reuse the same pipeline used in StarCoderdata with some tweaks to adapt to The Stack v2 and to correctly parse some notebooks in `nbformat 3`. We also use batched mapping and multiprocessing for faster execution.
 
 Note:
 
