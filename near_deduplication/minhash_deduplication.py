@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# author      : Chenghao Mou (mouchenghao@gmail.com)
-# created     : 10/4/22
 from __future__ import annotations
 
 import gc
@@ -28,7 +26,7 @@ with warnings.catch_warnings():
     import datasets
     import numpy as np
     import typer
-    from datasets import load_dataset
+    from datasets import Dataset, load_dataset
     from scipy.integrate import quad as integrate
     from tqdm import tqdm
 
@@ -210,7 +208,8 @@ class UnionFind:
 if __name__ == "__main__":
 
     def run(
-        dataset: str = typer.Option("codeparrot/codeparrot-clean-valid", help="The dataset to use"),  # noqa: E501
+        dataset: str = typer.Option("UnrealEngine", help="The dataset to use"),  # noqa: E501
+        input_dir: str = typer.Option("output/converted", help="The input directory"),
         config: str = typer.Option("default", help="Dataset config"),
         split: str = typer.Option("train", help="Dataset split"),
         data_dir: str = typer.Option(None, help="Dataset data directory"),
@@ -224,11 +223,30 @@ if __name__ == "__main__":
         output: str = typer.Option(None, help="Store the deduplicated dataset"),
     ):
         global uf
-        OUTPUT_BASE = Path(output or "output")
+        OUTPUT_BASE = Path(output or "output", "deduplicated")
         OUTPUT_BASE.mkdir(exist_ok=True, parents=True)
-        output = OUTPUT_BASE / "deduplicated"
+        output_folder = f"ngram_{ngram_size}_num_perm_{num_perm}_threshold_{threshold}"
+        log_directory = os.path.join(OUTPUT_BASE, output_folder)
+        os.makedirs(log_directory, exist_ok=True)  # make sure the directory exists
 
-        logging.basicConfig(level=logging.INFO)
+        log_filename = os.path.join(log_directory, f'result.txt')
+
+        #logging.basicConfig(level=logging.INFO)
+
+        # Set up logging to file
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s %(levelname)s %(message)s',
+                            filename=log_filename,  # Use output path
+                            filemode='w')
+
+        # Define a handler which writes INFO messages or higher to the sys.stderr
+        console = logging.StreamHandler()
+        console.setLevel(logging.INFO)
+        # Set a format for console use
+        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        console.setFormatter(formatter)
+        # Add the handler to the root logger
+        logging.getLogger('').addHandler(console)
 
         time_measures = {}
         start_time = time.time()
@@ -238,16 +256,17 @@ if __name__ == "__main__":
         HASH_TABLES = [defaultdict(set) for _ in range(B)]
 
         time_measures["load_dataset"] = time.time()
-        ds = load_dataset(
-            dataset,
-            config,
-            data_dir=data_dir,
-            split=split,
-            use_auth_token=True,
-            cache_dir=cache_dir,
-            revision=revision,
-            num_proc=os.cpu_count(),
-        )
+        # ds = load_dataset(
+        #     dataset,
+        #     config,
+        #     data_dir=data_dir,
+        #     split=split,
+        #     use_auth_token=True,
+        #     cache_dir=cache_dir,
+        #     revision=revision,
+        #     num_proc=os.cpu_count(),
+        # )
+        ds = Dataset.load_from_disk(input_dir)
         time_measures["load_dataset"] = time.time() - time_measures["load_dataset"]
         DATA_SIZE = len(ds)
         PERMUTATIONS = np.array(
@@ -322,7 +341,9 @@ if __name__ == "__main__":
 
         time_measures["save"] = time.time()
         final_data = final_data.remove_columns(["__cluster__"])
-        final_data.save_to_disk(output)
+        final_data_folder = os.path.join(output_folder, dataset)
+        final_data.save_to_disk(os.path.join(OUTPUT_BASE, final_data_folder))
+        #final_data.save_to_disk(output)
         time_measures["save"] = time.time() - time_measures["save"]
 
         FINAL_DATA_SIZE = len(final_data)
@@ -343,3 +364,5 @@ if __name__ == "__main__":
     mp.set_start_method("fork", force=True)
     uf = UnionFind()
     typer.run(run)
+
+# python3 minhash_deduplication.py --input-dir output/converted --column content --ngram-size 5 --num-perm 256 --threshold 0.7 --output output
