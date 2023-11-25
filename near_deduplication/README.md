@@ -2,6 +2,12 @@
 
 This is our implementation of near deduplication for BigCode dataset. It is largely evolved from the [original repo](https://github.com/bigcode-project/bigcode-analysis/tree/main/data_analysis/near-deduplication).
 
+## V2
+
+We use Google Dataproc and Cloud Storage for the deduplication. The actual script to run is at `bigcode-v2/run.sh`. Feel free to update the parameters in the script to run on your own dataset.
+
+## V1.*
+
 ### Setup
 
 ````
