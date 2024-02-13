@@ -33,8 +33,6 @@ python minhash_deduplication.py --dataset codeparrot/codeparrot-clean-valid \
     --column content \
     --cache-dir .cache \
     --min-ngram-size 5
-# For details on the arguments, see the help message
-python minhash_deduplication.py --help
 ```
 
 Spark Script
