@@ -83,7 +83,7 @@ def get_unrecognized_ext(log_file: str):
             m = re.search(pattern, line)
             if m is not None:
                 res.append(m.group(2))
-    # Count each occurence
+    # Count each occurrence
     res = dict(Counter(res))
     return res
 

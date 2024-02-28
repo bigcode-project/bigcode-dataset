@@ -79,7 +79,7 @@ class FilteringArguments:
     )
     out_path: Optional[str] = field(
         default=None,
-        metadata={"help": "Local path to save the ouptut dataset."},
+        metadata={"help": "Local path to save the output dataset."},
     )
     log_file: Optional[str] = field(
         default="filtering.log",
@@ -107,7 +107,7 @@ class ContentWithMetaArguments:
     )
     split: Optional[str] = field(
         default="train",
-        metadata={"help": "Datasset split to process."},
+        metadata={"help": "Dataset split to process."},
     )
     add_repo_name_prob: float = field(
         default=.2,
@@ -143,7 +143,7 @@ class ContentWithMetaArguments:
     )
     out_path: Optional[str] = field(
         default=None,
-        metadata={"help": "Local path to save the ouptut dataset."},
+        metadata={"help": "Local path to save the output dataset."},
     )
     log_file: Optional[str] = field(
         default="filtering.log",

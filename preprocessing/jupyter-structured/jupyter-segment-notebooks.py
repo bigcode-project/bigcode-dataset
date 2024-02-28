@@ -59,7 +59,7 @@ if __name__ == "__main__":
     dataset = load_dataset("bigcode/the-stack",data_dir="data/jupyter-notebook", split="train",use_auth_token=True)
     # segment notebooks
     dataset = dataset.map(segment) 
-    # filter out erronous cells via placeholders
+    # filter out erroneous cells via placeholders
     dataset = dataset.filter(lambda entry: entry['cell_types']!=['empty'])
     # push to hub
     dataset.push_to_hub("bigcode/jupyter-parsed")

@@ -220,7 +220,7 @@ def main(args):
         valid_stats = get_stats(valid_data)
         test_stats = get_stats(test_data)
         print("Train low-resource stats")
-        # print stats for keys with less than 100 in teh value
+        # print stats for keys with less than 100 in the value
         pprint({k: v for k, v in train_stats.items() if v < 300})
         print("Valid low-resource stats")
         pprint({k: v for k, v in valid_stats.items() if v < 100})

@@ -16,7 +16,7 @@ REPLACEMENTS_IP = {
     ],
 }
 
-# providergs = ["google", "cloudfare", "alternate-dns", "quad9","open-dns", "comodo", "adguard"]
+# providergs = ["google", "cloudflare", "alternate-dns", "quad9","open-dns", "comodo", "adguard"]
 POPULAR_DNS_SERVERS = [
     "8.8.8.8",
     "8.8.4.4",

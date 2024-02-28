@@ -27,7 +27,7 @@ def parse_data(ds):
                 types = types[1:]
             #else:
                 # drop first the two cells of markdown followed by code
-                # the first markown cell of a notebook is often a long description of the whole notebook
+                # the first markdown cell of a notebook is often a long description of the whole notebook
             #    cells = notebooks["cells"][2:]
             #    types = notebooks["types"][2:]
             if len(types)>0:

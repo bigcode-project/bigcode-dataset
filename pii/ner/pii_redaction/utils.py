@@ -106,7 +106,7 @@ def redact_pii_text(text, secrets, replacements, add_references=False):
         secrets (list): list with the secrets to redact
         replacements (dict): dictionary of replacements for each PII type
         add_references (bool): whether to add references to the redacted text (delimiters to PII)
-        for vizualization
+        for visualization
     Returns:
         text (str): new text with redacted secrets
     """
