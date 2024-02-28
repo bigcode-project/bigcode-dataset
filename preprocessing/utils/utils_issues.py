@@ -125,7 +125,7 @@ def strip_automated_email_text(example):
 
 
 def truncate_long_comments(example, max_lines=80):
-    """Truncates long comments in the middle (we keep teh last 20 lnes)"""
+    """Truncates long comments in the middle (we keep the last 20 lnes)"""
     for event in example["events"]:
         lines = event["text"].split("\n")
         nb_lines = len(lines)

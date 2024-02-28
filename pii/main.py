@@ -182,7 +182,7 @@ def main():
                   'max_forks_repo_path', 'max_forks_repo_name', 'max_forks_repo_head_hexsha', \
                   'max_forks_repo_licenses', 'max_forks_count', 'max_forks_repo_forks_event_min_datetime', 'max_forks_repo_forks_event_max_datetime']
         ds = ds.remove_columns(columns) 
-        logger.info(f"New dataset fomat: {ds}")
+        logger.info(f"New dataset format: {ds}")
     # add id column to dataset
     logger.info(f" ===== Adding an index column =====")
     ds = ds.add_column("index", list(range(len(ds))))

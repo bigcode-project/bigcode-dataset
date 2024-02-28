@@ -1,6 +1,6 @@
 # Fine-tuning StarEncoder on an NER task  for PII detection
 
-To run the training on an annotated PII dataset (`bigcode/pii-full-ds` in our case, you might need to adpat the code to fit your dataset), use the following command: 
+To run the training on an annotated PII dataset (`bigcode/pii-full-ds` in our case, you might need to adapt the code to fit your dataset), use the following command: 
 ```bash
 python -m torch.distributed.launch \
         --nproc_per_node number_of_gpus train.py \

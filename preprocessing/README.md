@@ -9,7 +9,7 @@ Three filters for the preprocessing of The Stack are available:
     * We compute the comment to code ratio of a file by counting the number of characters in comments over the total number of characters in the file.
 * **fertility**: filter based on the character to token ratio after calling the tokenizer on the code file. Different thresholds for Python (2.5), Java (2.9) and JavaScript (2.6) for data after near-dedup + basic filtering & PII redaction.
 
-* Additionnal filters used for StarCoder Training [StarCodeData](https://huggingface.co/datasets/bigcode/starcoderdata):
+* Additional filters used for StarCoder Training [StarCodeData](https://huggingface.co/datasets/bigcode/starcoderdata):
     - basic-filter with parameters that depend on the file's extension.
     - filter to remove XML files
     - filter for HTML based on displayed-text VS code ratio

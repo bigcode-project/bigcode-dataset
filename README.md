@@ -11,7 +11,7 @@ necessary used for model training.
 - `preprocessing`: code for filtering code datasets based on:
   - line length and percentage of alphanumeric characters (basic filter)
   - number of stars, comments to code ratio, tokenizer fertility
-  - Additionnal filters used for StarCoder Training:
+  - Additional filters used for StarCoder Training:
     - basic-filter with parameters that depend on the file's extension.
     - filter to remove XML files
     - filter for HTML based on displayed-text VS code ratio
