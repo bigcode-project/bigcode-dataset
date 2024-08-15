@@ -75,12 +75,10 @@ def convert_unknown_files(guess, success_dir, unknown_dir, lang2ext):
 if __name__ == "__main__":
     guess, dataset = load_data()
     lang2ext = {
-        'qsharp': '.py', 'python': '.py', 'coconut': '.coco', 'R': '.r', 'julia': '.jl',
-        'c++': '.cpp', 'scheme': '.scm', 'clojure': '.clj', 'bash': '.sh', 'powershell': '.ps1',
-        'q': '.q', 'matlab': '.m', 'Wolfram Language': '.wolfram', 'idl': '.pro', 'javascript': '.js',
-        'typescript': '.ts', 'scala': '.scala', 'rust': '.rs', 'robotframework': '.resource', 'csharp': '.cs',
-        'fsharp': '.fs', 'sos': '.sos', 'java': '.java', 'groovy': '.groovy', 'sage': '.sage', 'ocaml': '.ml',
-        'haskell': '.hs', 'tcl': '.tcl', 'maxima': '.mac', 'gnuplot': '.gp'
+        'c++': '.cpp', 'clojure': '.clj', 'csharp': '.cs', 'gnuplot': '.gp', 'groovy': '.groovy',
+        'haskell': '.hs', 'java': '.java', 'javascript': '.js', 'julia': '.jl', 'matlab': '.m',
+        'ocaml': '.ml', 'powershell': '.ps1', 'python': '.py', 'r': '.r', 'rust': '.rs',
+        'scala': '.scala', 'shell': '.sh', 'typescript': '.ts'
     }
     convert_to_script(dataset, "script", "unknown")
     convert_unknown_files(guess, "script", "unknown", lang2ext)
